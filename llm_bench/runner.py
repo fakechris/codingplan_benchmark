@@ -39,7 +39,7 @@ class TaskResult:
     @property
     def summary(self) -> dict:
         c = self.completion
-        return {
+        d = {
             "task_id": self.task.id,
             "task_title": self.task.title,
             "difficulty": self.task.difficulty.value,
@@ -53,12 +53,17 @@ class TaskResult:
             "completion_tokens": c.completion_tokens,
             "prompt_tokens": c.prompt_tokens,
             "output_chars": c.output_chars,
+            # Thinking 阶段 (reasoning 模型)
+            "thinking_time_s": round(c.thinking_time, 3),
+            "thinking_tokens": c.thinking_tokens,
+            "has_thinking": c.has_thinking,
             # 质量指标
             "quality_score": round(self.quality.final_score, 1),
             "rule_score": round(self.quality.rule_score, 1),
             "judge_score": round(self.quality.judge_score, 1),
             "error": c.error,
         }
+        return d
 
 
 @dataclass
@@ -132,7 +137,11 @@ class BenchmarkResult:
                 "p50": s[len(s) // 2],
             }
 
-        return {
+        # Thinking 阶段统计
+        thinking_times = [r.completion.thinking_time for r in valid if r.completion.has_thinking]
+        thinking_tokens_list = [r.completion.thinking_tokens for r in valid if r.completion.has_thinking]
+
+        result = {
             "task_count": len(valid),
             "success_rate": len(valid) / max(1, len(self.task_results)) * 100,
             "wall_time": self.wall_time,
@@ -144,6 +153,17 @@ class BenchmarkResult:
             "gen_time": _stats(gen_times),
             "cps": _stats(cps_list),
         }
+
+        # 仅当有 thinking 数据时才加入
+        if thinking_times:
+            result["thinking"] = {
+                "task_count": len(thinking_times),
+                "time": _stats(thinking_times),
+                "tokens": _stats(thinking_tokens_list),
+                "total_thinking_tokens": sum(thinking_tokens_list),
+            }
+
+        return result
 
     def compute_overall(self):
         if self.task_results:

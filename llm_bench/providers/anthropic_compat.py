@@ -49,16 +49,49 @@ class AnthropicCompatProvider(Provider):
         try:
             if stream:
                 full_text = []
-                async for chunk in self._stream_impl(chat_messages, system_msg, temperature, max_tokens):
-                    if not result.first_token_time and chunk.text:
-                        result.first_token_time = chunk.timestamp
-                    full_text.append(chunk.text)
-                    result.chunk_timestamps.append(chunk.timestamp)
-                    result.chunk_texts.append(chunk.text)
+                thinking_text = []
+                in_thinking = False
+
+                async for chunk in self._stream_events(chat_messages, system_msg, temperature, max_tokens):
+                    now = time.time()
+
+                    if chunk.get("type") == "thinking_start":
+                        in_thinking = True
+                        if not result.thinking_start_time:
+                            result.thinking_start_time = now
+                        continue
+
+                    if chunk.get("type") == "thinking_end":
+                        in_thinking = False
+                        result.thinking_end_time = now
+                        continue
+
+                    if chunk.get("type") == "thinking_delta":
+                        thinking_text.append(chunk.get("text", ""))
+                        continue
+
+                    # 正常 text delta
+                    text = chunk.get("text", "")
+                    if text:
+                        if not result.first_token_time:
+                            result.first_token_time = now
+                        full_text.append(text)
+                        result.chunk_timestamps.append(now)
+                        result.chunk_texts.append(text)
+
+                    # usage 事件 (message_delta with usage)
+                    if "output_tokens" in chunk:
+                        result.completion_tokens = chunk["output_tokens"]
+                    if "input_tokens" in chunk:
+                        result.prompt_tokens = chunk["input_tokens"]
 
                 result.text = "".join(full_text)
+                result.thinking_text = "".join(thinking_text)
+                result.thinking_tokens = max(1, len(result.thinking_text) // 3) if result.thinking_text else 0
                 result.end_time = time.time()
-                result.completion_tokens = max(1, len(result.text) // 3)
+                # 如果 API 没返回 token 数, 用字符估算
+                if result.completion_tokens == 0:
+                    result.completion_tokens = max(1, len(result.text) // 3)
             else:
                 kwargs = {
                     "model": self.model,
@@ -72,7 +105,18 @@ class AnthropicCompatProvider(Provider):
                 response = await self.client.messages.create(**kwargs)
                 result.first_token_time = time.time()
                 result.end_time = result.first_token_time
-                result.text = response.content[0].text if response.content else ""
+
+                # 解析 content blocks — 区分 thinking 和 text
+                for block in (response.content or []):
+                    if getattr(block, "type", "") == "thinking":
+                        result.thinking_text = getattr(block, "thinking", "")
+                        result.thinking_tokens = max(1, len(result.thinking_text) // 3)
+                    elif getattr(block, "type", "") == "text":
+                        result.text = block.text
+
+                if not result.text and response.content:
+                    result.text = response.content[0].text if hasattr(response.content[0], 'text') else ""
+
                 result.prompt_tokens = response.usage.input_tokens
                 result.completion_tokens = response.usage.output_tokens
 
@@ -82,6 +126,67 @@ class AnthropicCompatProvider(Provider):
 
         return result
 
+    async def _stream_events(
+        self,
+        messages: list[dict],
+        system: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> AsyncIterator[dict]:
+        """底层 event stream — 区分 thinking / text / usage 事件"""
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if system:
+            kwargs["system"] = system
+
+        async with self.client.messages.stream(**kwargs) as stream:
+            async for event in stream:
+                etype = getattr(event, "type", "")
+
+                # content_block_start: 识别 thinking vs text block
+                if etype == "content_block_start":
+                    cb = getattr(event, "content_block", None)
+                    if cb and getattr(cb, "type", "") == "thinking":
+                        yield {"type": "thinking_start"}
+                    continue
+
+                # content_block_stop
+                if etype == "content_block_stop":
+                    # 通过已有状态判断是否 thinking 结束
+                    yield {"type": "thinking_end"}
+                    continue
+
+                # content_block_delta
+                if etype == "content_block_delta":
+                    delta = getattr(event, "delta", None)
+                    if delta:
+                        delta_type = getattr(delta, "type", "")
+                        if delta_type == "thinking_delta":
+                            yield {"type": "thinking_delta", "text": getattr(delta, "thinking", "")}
+                        elif delta_type == "text_delta":
+                            yield {"type": "text_delta", "text": getattr(delta, "text", "")}
+                    continue
+
+                # message_delta (final usage)
+                if etype == "message_delta":
+                    usage = getattr(event, "usage", None)
+                    if usage:
+                        yield {"output_tokens": getattr(usage, "output_tokens", 0)}
+                    continue
+
+                # message_start (input usage)
+                if etype == "message_start":
+                    msg = getattr(event, "message", None)
+                    if msg:
+                        usage = getattr(msg, "usage", None)
+                        if usage:
+                            yield {"input_tokens": getattr(usage, "input_tokens", 0)}
+                    continue
+
     async def _stream_impl(
         self,
         messages: list[dict],
@@ -89,6 +194,7 @@ class AnthropicCompatProvider(Provider):
         temperature: float,
         max_tokens: int,
     ) -> AsyncIterator[StreamChunk]:
+        """兼容旧接口 — 只 yield text chunks"""
         kwargs = {
             "model": self.model,
             "messages": messages,
