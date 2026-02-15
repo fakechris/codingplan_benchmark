@@ -508,8 +508,10 @@ def merge_export_json(new_results: list[BenchmarkResult], output_path: str):
                 old_data = json.load(f)
             existing_entries = old_data.get("results", [])
             console.print(f"[dim]已加载 {len(existing_entries)} 条已有结果[/dim]")
-        except Exception as e:
-            console.print(f"[yellow]读取已有结果失败, 将创建新文件: {e}[/yellow]")
+        except json.JSONDecodeError as e:
+            console.print(f"[yellow]解析已有 JSON 结果失败, 将创建新文件: {e}[/yellow]")
+        except IOError as e:
+            console.print(f"[yellow]读取已有结果文件失败, 将创建新文件: {e}[/yellow]")
 
     # 新结果 → dict
     new_entries = [r.to_dict() for r in new_results]
@@ -521,7 +523,7 @@ def merge_export_json(new_results: list[BenchmarkResult], output_path: str):
 
     replaced = len(existing_entries) - len(merged) + len(new_entries)
     console.print(f"[dim]合并: 保留 {len(merged) - len(new_entries)} 条旧结果, 添加 {len(new_entries)} 条新结果"
-                  f"{f', 覆盖 {replaced - len(new_entries)} 条同名旧结果' if replaced > len(new_entries) else ''}[/dim]")
+                  f"{f', 覆盖 {replaced} 条同名旧结果' if replaced > 0 else ''}[/dim]")
 
     data = {
         "benchmark": "llm-coding-bench",
