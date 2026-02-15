@@ -494,3 +494,41 @@ def export_json(results: list[BenchmarkResult], output_path: str):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     console.print(f"[green]结果已导出: {path}[/green]")
+
+
+def merge_export_json(new_results: list[BenchmarkResult], output_path: str):
+    """将新结果合并到已有 JSON 文件中 (按 model_name 去重, 新结果覆盖旧同名结果)"""
+    path = Path(output_path)
+    existing_entries = []
+
+    # 读取已有结果
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                old_data = json.load(f)
+            existing_entries = old_data.get("results", [])
+            console.print(f"[dim]已加载 {len(existing_entries)} 条已有结果[/dim]")
+        except Exception as e:
+            console.print(f"[yellow]读取已有结果失败, 将创建新文件: {e}[/yellow]")
+
+    # 新结果 → dict
+    new_entries = [r.to_dict() for r in new_results]
+    new_names = {e["model_name"] for e in new_entries}
+
+    # 合并: 保留旧结果中不与新结果重名的, 然后追加新结果
+    merged = [e for e in existing_entries if e.get("model_name") not in new_names]
+    merged.extend(new_entries)
+
+    replaced = len(existing_entries) - len(merged) + len(new_entries)
+    console.print(f"[dim]合并: 保留 {len(merged) - len(new_entries)} 条旧结果, 添加 {len(new_entries)} 条新结果"
+                  f"{f', 覆盖 {replaced - len(new_entries)} 条同名旧结果' if replaced > len(new_entries) else ''}[/dim]")
+
+    data = {
+        "benchmark": "llm-coding-bench",
+        "version": "0.3.0",
+        "results": merged,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    console.print(f"[green]结果已合并导出: {path} (共 {len(merged)} 条)[/green]")

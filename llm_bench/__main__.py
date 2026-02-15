@@ -215,7 +215,8 @@ async def _run_debug(config_path):
 @click.option("--tasks", "-t", multiple=True, help="指定任务 ID")
 @click.option("--difficulty", "-d", type=click.Choice(["easy", "medium", "hard", "expert"]), help="过滤难度")
 @click.option("--models", "-m", multiple=True, help="指定模型名称 (可多次使用, 不指定则测全部)")
-def run(config, output, no_judge, tasks, difficulty, models):
+@click.option("--merge", is_flag=True, help="将新结果合并到已有 JSON 结果中 (按 model_name 去重覆盖)")
+def run(config, output, no_judge, tasks, difficulty, models, merge):
     """运行完整评测 (支持多模型同时对比)"""
     from .config import load_config
 
@@ -238,13 +239,13 @@ def run(config, output, no_judge, tasks, difficulty, models):
         console.print("[red]错误: 没有要测试的模型[/red]")
         sys.exit(1)
 
-    asyncio.run(_run_benchmark(cfg))
+    asyncio.run(_run_benchmark(cfg, merge=merge))
 
 
-async def _run_benchmark(cfg):
+async def _run_benchmark(cfg, merge: bool = False):
     from .config import BenchmarkConfig
     from .runner import BenchmarkRunner, BenchmarkResult
-    from .report import print_result, print_comparison, export_json
+    from .report import print_result, print_comparison, export_json, merge_export_json
     from .tasks.coding_plans import TaskDifficulty
 
     # 创建 Judge provider
@@ -260,6 +261,8 @@ async def _run_benchmark(cfg):
     all_results = []
 
     console.print(f"\n[bold]评测 {len(cfg.models)} 个模型[/bold]")
+    if merge:
+        console.print(f"[dim]模式: --merge (新结果将合并到已有 JSON 中)[/dim]")
     console.print(f"[dim]任务过滤: difficulty={cfg.difficulty or 'all'}, tasks={cfg.task_ids or 'all'}[/dim]\n")
 
     for idx, mc in enumerate(cfg.models):
@@ -302,7 +305,11 @@ async def _run_benchmark(cfg):
     output_dir = Path(cfg.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     if "json" in cfg.output_format:
-        export_json(all_results, str(output_dir / "benchmark_results.json"))
+        json_path = str(output_dir / "benchmark_results.json")
+        if merge:
+            merge_export_json(all_results, json_path)
+        else:
+            export_json(all_results, json_path)
 
 
 # ================================================================
