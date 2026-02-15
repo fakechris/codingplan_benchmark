@@ -39,6 +39,7 @@ def _create_provider_from_config(mc):
     return get_provider(
         provider_name=mc.provider, model=mc.model,
         api_key=mc.get_api_key(), base_url=mc.base_url, timeout=mc.timeout,
+        thinking=mc.thinking,
     )
 
 

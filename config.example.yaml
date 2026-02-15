@@ -22,33 +22,33 @@ settings:
 #   api_key: "sk-xxx"
 
 models:
-  # === MiniMax M2.5 (Anthropic 兼容 API) ===
+  # === MiniMax M2.5 (Anthropic 兼容 API, 服务端默认开启 thinking) ===
   - name: MiniMax-M2.5
     provider: anthropic_compat
     model: MiniMax-M2.5
     base_url: https://api.minimax.io/anthropic
     api_key: "<YOUR_MINIMAX_API_KEY>"
-    max_tokens: 8192
-    timeout: 120
+    max_tokens: 16384          # 实测支持 ≥64K, 建议 16K-32K
+    timeout: 180               # thinking 模式需要更长超时
     retry_count: 2
 
-  # === Kimi K2.5 (Anthropic 兼容 API, 火山引擎 ARK) ===
+  # === Kimi K2.5 (Anthropic 兼容 API, 火山引擎 ARK, 服务端默认开启 thinking) ===
   - name: Kimi-K2.5
     provider: anthropic_compat
     model: kimi-k2.5
     base_url: https://ark.cn-beijing.volces.com/api/coding
     api_key: "<YOUR_VOLCENGINE_API_KEY>"
-    max_tokens: 16384
-    timeout: 120
+    max_tokens: 32768          # 实测上限 32K (65536 返回 400)
+    timeout: 300               # thinking 阶段可能很长, 建议 300s
     retry_count: 2
 
-  # === Doubao Seed 2.0 Code (Anthropic 兼容 API, 火山引擎 ARK) ===
+  # === Doubao Seed 2.0 Code (Anthropic 兼容 API, 火山引擎 ARK, 无 thinking) ===
   - name: Doubao-Seed-2.0-Code
     provider: anthropic_compat
     model: doubao-seed-2.0-code
     base_url: https://ark.cn-beijing.volces.com/api/coding
     api_key: "<YOUR_VOLCENGINE_API_KEY>"
-    max_tokens: 8192
+    max_tokens: 32768          # 实测支持 ≥64K, 建议 32K
     timeout: 120
     retry_count: 2
 

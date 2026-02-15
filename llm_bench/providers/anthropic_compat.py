@@ -93,15 +93,7 @@ class AnthropicCompatProvider(Provider):
                 if result.completion_tokens == 0:
                     result.completion_tokens = max(1, len(result.text) // 3)
             else:
-                kwargs = {
-                    "model": self.model,
-                    "messages": chat_messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                }
-                if system_msg:
-                    kwargs["system"] = system_msg
-
+                kwargs = self._build_api_kwargs(chat_messages, system_msg, temperature, max_tokens)
                 response = await self.client.messages.create(**kwargs)
                 result.first_token_time = time.time()
                 result.end_time = result.first_token_time
@@ -126,14 +118,8 @@ class AnthropicCompatProvider(Provider):
 
         return result
 
-    async def _stream_events(
-        self,
-        messages: list[dict],
-        system: str,
-        temperature: float,
-        max_tokens: int,
-    ) -> AsyncIterator[dict]:
-        """底层 event stream — 区分 thinking / text / usage 事件"""
+    def _build_api_kwargs(self, messages, system, temperature, max_tokens):
+        """构建 API 请求参数 (含 thinking 控制)"""
         kwargs = {
             "model": self.model,
             "messages": messages,
@@ -142,6 +128,25 @@ class AnthropicCompatProvider(Provider):
         }
         if system:
             kwargs["system"] = system
+
+        # Thinking 模式控制
+        if self.thinking == "enabled":
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": max(1024, max_tokens)}
+        elif self.thinking == "disabled":
+            kwargs["thinking"] = {"type": "disabled"}
+        # None = 不传, 让服务端用默认值
+
+        return kwargs
+
+    async def _stream_events(
+        self,
+        messages: list[dict],
+        system: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> AsyncIterator[dict]:
+        """底层 event stream — 区分 thinking / text / usage 事件"""
+        kwargs = self._build_api_kwargs(messages, system, temperature, max_tokens)
 
         async with self.client.messages.stream(**kwargs) as stream:
             async for event in stream:
@@ -195,14 +200,7 @@ class AnthropicCompatProvider(Provider):
         max_tokens: int,
     ) -> AsyncIterator[StreamChunk]:
         """兼容旧接口 — 只 yield text chunks"""
-        kwargs = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-        if system:
-            kwargs["system"] = system
+        kwargs = self._build_api_kwargs(messages, system, temperature, max_tokens)
 
         async with self.client.messages.stream(**kwargs) as stream:
             async for text in stream.text_stream:
