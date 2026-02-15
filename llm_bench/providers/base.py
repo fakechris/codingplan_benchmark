@@ -118,11 +118,12 @@ class Provider(ABC):
     """LLM Provider 基类"""
 
     def __init__(self, model: str, api_key: str, base_url: Optional[str] = None,
-                 timeout: float = 120.0, **kwargs):
+                 timeout: float = 120.0, thinking: Optional[str] = None, **kwargs):
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
         self.timeout = timeout
+        self.thinking = thinking  # "enabled" / "disabled" / None (default)
         self.extra_params = kwargs
 
     @abstractmethod

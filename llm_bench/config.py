@@ -45,6 +45,7 @@ class ModelConfig:
     # === 高级参数 ===
     system_prompt_override: Optional[str] = None  # 覆盖任务的 system prompt
     thinking_budget: Optional[int] = None         # Claude extended thinking token budget
+    thinking: Optional[str] = None                # Thinking 模式: "enabled" / "disabled" / None(用模型默认)
     stream: bool = True                           # 是否使用流式输出
     seed: Optional[int] = None                    # 随机种子 (可复现)
 
@@ -128,6 +129,7 @@ def _parse_model_config(raw: dict) -> ModelConfig:
         stop=raw.get("stop"),
         system_prompt_override=raw.get("system_prompt"),
         thinking_budget=raw.get("thinking_budget"),
+        thinking=raw.get("thinking"),
         stream=raw.get("stream", True),
         seed=raw.get("seed"),
         retry_count=raw.get("retry_count", 2),
