@@ -814,6 +814,328 @@
           "similarity": 1.0
         }
       ]
+    },
+    {
+      "model": "kimi-k2.5",
+      "model_name": "Kimi-Native-Think-On",
+      "provider": "AnthropicCompatProvider",
+      "timestamp": "2026-02-16T00:01:34.079183",
+      "wall_time_s": 409.31,
+      "scores": {
+        "overall": 75.0,
+        "quality": 82.8,
+        "speed": 60.0,
+        "throughput": 51.6,
+        "consistency": 100
+      },
+      "objective_metrics": {
+        "task_count": 4,
+        "success_rate": 100.0,
+        "wall_time": 409.31303882598877,
+        "total_output_tokens": 24803,
+        "total_output_chars": 26066,
+        "ttft": {
+          "min": 32.200494050979614,
+          "max": 65.58032464981079,
+          "avg": 46.516146659851074,
+          "p50": 51.24476408958435
+        },
+        "tps": {
+          "min": 420.8583781200872,
+          "max": 658.8939688105786,
+          "avg": 489.0154268144674,
+          "p50": 446.72438200953144
+        },
+        "latency": {
+          "min": 42.301279067993164,
+          "max": 85.17630004882812,
+          "avg": 59.440786242485046,
+          "p50": 61.477062940597534
+        },
+        "gen_time": {
+          "min": 10.10078501701355,
+          "max": 19.595975399017334,
+          "avg": 12.924639582633972,
+          "p50": 11.769499063491821
+        },
+        "cps": {
+          "min": 427.6307745001672,
+          "max": 574.2600060413764,
+          "avg": 507.61935165662146,
+          "p50": 526.4937320260229
+        },
+        "thinking": {
+          "task_count": 4,
+          "time": {
+            "min": 41.73880100250244,
+            "max": 84.38129615783691,
+            "avg": 58.737892270088196,
+            "p50": 60.59053301811218
+          },
+          "tokens": {
+            "min": 4343,
+            "max": 10899,
+            "avg": 7260.5,
+            "p50": 8327
+          },
+          "total_thinking_tokens": 29042
+        }
+      },
+      "tasks": [
+        {
+          "task_id": "M01",
+          "task_title": "并发安全的连接池",
+          "difficulty": "medium",
+          "category": "code_gen",
+          "ttft_s": 65.58,
+          "gen_time_s": 19.596,
+          "total_latency_s": 85.176,
+          "tps": 446.7,
+          "chars_per_second": 502.1,
+          "completion_tokens": 8754,
+          "prompt_tokens": 208,
+          "output_chars": 9839,
+          "thinking_time_s": 84.381,
+          "thinking_tokens": 10899,
+          "has_thinking": true,
+          "quality_score": 82.0,
+          "rule_score": 80.0,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "M03",
+          "task_title": "修复 Race Condition",
+          "difficulty": "medium",
+          "category": "bug_fix",
+          "ttft_s": 37.039,
+          "gen_time_s": 11.769,
+          "total_latency_s": 48.809,
+          "tps": 429.6,
+          "chars_per_second": 427.6,
+          "completion_tokens": 5056,
+          "prompt_tokens": 272,
+          "output_chars": 5033,
+          "thinking_time_s": 48.241,
+          "thinking_tokens": 5473,
+          "has_thinking": true,
+          "quality_score": 91.0,
+          "rule_score": 85.0,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "H01",
+          "task_title": "实现跳表 (Skip List)",
+          "difficulty": "hard",
+          "category": "algorithm",
+          "ttft_s": 32.2,
+          "gen_time_s": 10.101,
+          "total_latency_s": 42.301,
+          "tps": 420.9,
+          "chars_per_second": 526.5,
+          "completion_tokens": 4251,
+          "prompt_tokens": 226,
+          "output_chars": 5318,
+          "thinking_time_s": 41.739,
+          "thinking_tokens": 4343,
+          "has_thinking": true,
+          "quality_score": 77.3,
+          "rule_score": 90.5,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "X02",
+          "task_title": "实现 Promise.allSettled + 重试",
+          "difficulty": "expert",
+          "category": "code_gen",
+          "ttft_s": 51.245,
+          "gen_time_s": 10.232,
+          "total_latency_s": 61.477,
+          "tps": 658.9,
+          "chars_per_second": 574.3,
+          "completion_tokens": 6742,
+          "prompt_tokens": 337,
+          "output_chars": 5876,
+          "thinking_time_s": 60.591,
+          "thinking_tokens": 8327,
+          "has_thinking": true,
+          "quality_score": 81.0,
+          "rule_score": 88.3,
+          "judge_score": 0.0,
+          "error": null
+        }
+      ],
+      "throughput": {
+        "concurrency": 2,
+        "rps": 0.16,
+        "success_rate": 100.0,
+        "p50_latency": 12.305,
+        "p95_latency": 12.342,
+        "avg_tps": 41.6
+      },
+      "consistency": [
+        {
+          "task_id": "C01",
+          "avg_score": 42.2,
+          "stddev": 0.0,
+          "similarity": 1.0
+        }
+      ]
+    },
+    {
+      "model": "kimi-k2.5",
+      "model_name": "Kimi-Native-Think-Off",
+      "provider": "AnthropicCompatProvider",
+      "timestamp": "2026-02-16T00:08:23.405258",
+      "wall_time_s": 103.25,
+      "scores": {
+        "overall": 86.7,
+        "quality": 87.6,
+        "speed": 94.2,
+        "throughput": 57.9,
+        "consistency": 100
+      },
+      "objective_metrics": {
+        "task_count": 4,
+        "success_rate": 100.0,
+        "wall_time": 103.25373911857605,
+        "total_output_tokens": 8166,
+        "total_output_chars": 37862,
+        "ttft": {
+          "min": 0.5457131862640381,
+          "max": 0.926706075668335,
+          "avg": 0.7114292979240417,
+          "p50": 0.6937570571899414
+        },
+        "tps": {
+          "min": 105.78259328251616,
+          "max": 117.05490398109136,
+          "avg": 114.02957582754858,
+          "p50": 116.813991260033
+        },
+        "latency": {
+          "min": 7.944600820541382,
+          "max": 25.405781984329224,
+          "avg": 18.73014724254608,
+          "p50": 23.12976908683777
+        },
+        "gen_time": {
+          "min": 7.25084376335144,
+          "max": 24.47907590866089,
+          "avg": 18.01871794462204,
+          "p50": 22.58405590057373
+        },
+        "cps": {
+          "min": 448.3694179902715,
+          "max": 575.5903239050971,
+          "avg": 520.2143531961244,
+          "p50": 571.7127579578467
+        }
+      },
+      "tasks": [
+        {
+          "task_id": "M01",
+          "task_title": "并发安全的连接池",
+          "difficulty": "medium",
+          "category": "code_gen",
+          "ttft_s": 0.927,
+          "gen_time_s": 24.479,
+          "total_latency_s": 25.406,
+          "tps": 116.5,
+          "chars_per_second": 571.7,
+          "completion_tokens": 2851,
+          "prompt_tokens": 208,
+          "output_chars": 13995,
+          "thinking_time_s": 0.0,
+          "thinking_tokens": 0,
+          "has_thinking": false,
+          "quality_score": 87.0,
+          "rule_score": 86.7,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "M03",
+          "task_title": "修复 Race Condition",
+          "difficulty": "medium",
+          "category": "bug_fix",
+          "ttft_s": 0.694,
+          "gen_time_s": 7.251,
+          "total_latency_s": 7.945,
+          "tps": 116.8,
+          "chars_per_second": 485.2,
+          "completion_tokens": 847,
+          "prompt_tokens": 270,
+          "output_chars": 3518,
+          "thinking_time_s": 0.0,
+          "thinking_tokens": 0,
+          "has_thinking": false,
+          "quality_score": 82.3,
+          "rule_score": 73.8,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "H01",
+          "task_title": "实现跳表 (Skip List)",
+          "difficulty": "hard",
+          "category": "algorithm",
+          "ttft_s": 0.546,
+          "gen_time_s": 22.584,
+          "total_latency_s": 23.13,
+          "tps": 105.8,
+          "chars_per_second": 448.4,
+          "completion_tokens": 2389,
+          "prompt_tokens": 224,
+          "output_chars": 10126,
+          "thinking_time_s": 0.0,
+          "thinking_tokens": 0,
+          "has_thinking": false,
+          "quality_score": 90.7,
+          "rule_score": 96.2,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "X02",
+          "task_title": "实现 Promise.allSettled + 重试",
+          "difficulty": "expert",
+          "category": "code_gen",
+          "ttft_s": 0.68,
+          "gen_time_s": 17.761,
+          "total_latency_s": 18.44,
+          "tps": 117.1,
+          "chars_per_second": 575.6,
+          "completion_tokens": 2079,
+          "prompt_tokens": 337,
+          "output_chars": 10223,
+          "thinking_time_s": 0.0,
+          "thinking_tokens": 0,
+          "has_thinking": false,
+          "quality_score": 90.6,
+          "rule_score": 87.6,
+          "judge_score": 0.0,
+          "error": null
+        }
+      ],
+      "throughput": {
+        "concurrency": 2,
+        "rps": 0.79,
+        "success_rate": 100.0,
+        "p50_latency": 2.443,
+        "p95_latency": 2.532,
+        "avg_tps": 56.7
+      },
+      "consistency": [
+        {
+          "task_id": "C01",
+          "avg_score": 37.2,
+          "stddev": 0.0,
+          "similarity": 1.0
+        }
+      ]
     }
   ]
 }

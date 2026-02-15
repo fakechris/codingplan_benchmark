@@ -66,6 +66,9 @@ python -m llm_bench run -c config.yaml -d easy
 # 只测某个模型
 python -m llm_bench run -c config.yaml -m MiniMax-M2.5
 
+# 只跑新增模型, 结果合并到已有 JSON (按 model_name 去重覆盖)
+python -m llm_bench run -c config.yaml -m Kimi-Native-Think-On -m Kimi-Native-Think-Off --merge
+
 # 禁用 Judge (更快)
 python -m llm_bench run -c config.yaml --no-judge
 ```
@@ -145,22 +148,24 @@ models:
 
 ---
 
-## 评测报告: 2026-02-15 — Thinking On/Off 对比
+## 评测报告: 2026-02-15 — Thinking On/Off 对比 + 原生 Kimi 对比
 
 **测试环境**: macOS, Python 3.9.6, 网络环境 (中国大陆)  
 **测试配置**: 4 道 medium/hard/expert 题, 吞吐并发 2, 一致性 1 轮, anti-cache 开启  
-**测试时间**: 2026-02-15 21:07 ~ 21:47 (UTC+8)  
-**本次重点**: 对比 Thinking 模式开启/关闭对**质量**和**速度**的影响
+**测试时间**: 2026-02-15 21:07 ~ 21:47 (UTC+8), 原生 Kimi 补测 2026-02-16 00:01 ~ 00:10  
+**本次重点**: 对比 Thinking 模式开启/关闭对**质量**和**速度**的影响; 方舟 vs 原生 Kimi API 性能差异
 
-### 被测模型 (5 种配置)
+### 被测模型 (7 种配置)
 
-| 模型 | 底层 | Thinking | max_tokens | 备注 |
-|------|------|----------|------------|------|
-| MiniMax-M2.5 | MiniMax-M2.5 | 服务端默认 (On) | 16384 | 基线 |
-| Doubao-Default | doubao-seed-2.0-code | Off (不支持) | 32768 | 速度型 |
-| Doubao-Think-On | doubao-seed-2.0-code | **enabled** | 32768 | 显式开启 |
-| Kimi-Think-On | kimi-k2.5 | **enabled** | 32768 | 显式开启 |
-| Kimi-Think-Off | kimi-k2.5 | **disabled** | 32768 | 显式关闭 |
+| 模型 | 底层 | Thinking | max_tokens | API 来源 | 备注 |
+|------|------|----------|------------|----------|------|
+| MiniMax-M2.5 | MiniMax-M2.5 | 服务端默认 (On) | 16384 | MiniMax | 基线 |
+| Doubao-Default | doubao-seed-2.0-code | Off (不支持) | 32768 | 方舟 | 速度型 |
+| Doubao-Think-On | doubao-seed-2.0-code | **enabled** | 32768 | 方舟 | 显式开启 |
+| Kimi-Think-On | kimi-k2.5 | **enabled** | 32768 | 方舟 | 方舟版 |
+| Kimi-Think-Off | kimi-k2.5 | **disabled** | 32768 | 方舟 | 方舟版 |
+| Kimi-Native-Think-On | kimi-k2.5 | **enabled** | 32768 | **原生 Kimi** | api.kimi.com |
+| Kimi-Native-Think-Off | kimi-k2.5 | **disabled** | 32768 | **原生 Kimi** | api.kimi.com |
 
 ### 测试任务 (4 道)
 
@@ -175,11 +180,13 @@ models:
 
 | # | 模型 | 综合 | 质量 | 速度 | 吞吐 | 一致性 | 等级 | 总耗时 |
 |---|------|------|------|------|------|--------|------|--------|
-| 1 | **Doubao-Default** | **81.4** | 81.2 | **82.7** | **61.3** | 100.0 | **A** | **2.0 min** |
-| 2 | Doubao-Think-On | 77.8 | **89.0** | 60.0 | 51.9 | 100.0 | B | 12.8 min |
-| 3 | MiniMax-M2.5 | 74.7 | 82.1 | 60.0 | 51.8 | 100.0 | B | 4.7 min |
-| 4 | Kimi-Think-Off | 72.9 | 82.4 | 50.7 | 54.2 | 100.0 | B | 5.4 min |
-| 5 | Kimi-Think-On | 69.2 | 81.5 | 40.0 | 50.4 | 100.0 | C | 15.2 min |
+| 1 | **Kimi-Native-Think-Off** | **86.7** | **87.6** | **94.2** | 57.9 | 100.0 | **S** | **1.7 min** |
+| 2 | Doubao-Default | 81.4 | 81.2 | 82.7 | **61.3** | 100.0 | A | 2.0 min |
+| 3 | Doubao-Think-On | 77.8 | 89.0 | 60.0 | 51.9 | 100.0 | B | 12.8 min |
+| 4 | Kimi-Native-Think-On | 75.0 | 82.8 | 60.0 | 51.6 | 100.0 | B | 6.8 min |
+| 5 | MiniMax-M2.5 | 74.7 | 82.1 | 60.0 | 51.8 | 100.0 | B | 4.7 min |
+| 6 | Kimi-Think-Off (方舟) | 72.9 | 82.4 | 50.7 | 54.2 | 100.0 | B | 5.4 min |
+| 7 | Kimi-Think-On (方舟) | 69.2 | 81.5 | 40.0 | 50.4 | 100.0 | C | 15.2 min |
 
 ### Thinking 模式对比: 豆包
 
@@ -205,82 +212,108 @@ models:
 | 总耗时 | **5.4 min** | 15.2 min | 慢 2.8x |
 | Thinking Tokens | 0 | 14.8k | - |
 
-> Kimi 关 thinking 后质量**基本不变** (82.4 vs 81.5), 速度快了 **3 倍**。Thinking 在这些任务上投入产出比很低。
+> Kimi (方舟) 关 thinking 后质量**基本不变** (82.4 vs 81.5), 速度快了 **3 倍**。Thinking 在这些任务上投入产出比很低。
+
+### 原生 Kimi API vs 方舟 Kimi: 同一个模型, 天壤之别
+
+| 指标 | 方舟 Think-Off | **原生 Think-Off** | 方舟 Think-On | **原生 Think-On** |
+|------|---------------|-------------------|--------------|------------------|
+| 综合 | 72.9 | **86.7** (+18.9%) | 69.2 | **75.0** (+8.4%) |
+| 质量 | 82.4 | **87.6** (+6.3%) | 81.5 | **82.8** (+1.6%) |
+| 速度 | 50.7 | **94.2** (+86%) | 40.0 | **60.0** (+50%) |
+| TTFT | 178 ms | **711 ms** | 1.8 min | **46.5 s** |
+| CPS (字符/秒) | 99.3 | **520.2** (5.2x!) | 110.9 | **507.6** (4.6x!) |
+| 总耗时 | 5.4 min | **1.7 min** (3.2x 快) | 15.2 min | **6.8 min** (2.2x 快) |
+| Thinking 耗时 | — | — | 2.7 min | **58.7 s** (2.8x 快) |
+
+> **同一个 kimi-k2.5 模型, 原生 API (api.kimi.com) 的 CPS 是方舟 API 的 5 倍!** 质量也更高。原生 Kimi-Think-Off 以 86.7 分**登顶全部 7 个模型的榜首**, 超越此前的冠军 Doubao-Default (81.4)。方舟版 Kimi 很可能存在限速或量化, 严重影响了性能表现。
+
+### 原生 Kimi Thinking On/Off 对比
+
+| 指标 | 原生 Think-Off | 原生 Think-On | 变化 |
+|------|---------------|---------------|------|
+| 质量 | **87.6** | 82.8 | **-4.8 (关比开好!)** |
+| 平均 TTFT | **711 ms** | 46.5 s | 慢 65x |
+| 平均 CPS | 520.2 | **507.6** | 持平 |
+| 总耗时 | **1.7 min** | 6.8 min | 慢 4x |
+| Thinking Tokens | 0 | 29.0k | — |
+
+> 原生 Kimi 同样证实: **关 thinking 质量更高** (87.6 vs 82.8)。Think-Off 在 4 道题中 3 道胜出, 且速度快 4 倍。
 
 ### 客观指标对比
 
 #### TTFT (首字延迟)
 
-| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| 平均 | **327 ms** | 2.2 min | 28.29 s | 178 ms | 1.8 min |
-| 最小 | **272 ms** | 1.1 min | 13.05 s | 136 ms | 1.3 min |
-| 最大 | 418 ms | 2.9 min | 53.29 s | **224 ms** | 2.1 min |
+| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| 平均 | **327 ms** | 2.2 min | 28.29 s | 178 ms | 1.8 min | 711 ms | 46.52 s |
+| 最小 | **272 ms** | 1.1 min | 13.05 s | 136 ms | 1.3 min | 546 ms | 32.20 s |
+| 最大 | 418 ms | 2.9 min | 53.29 s | **224 ms** | 2.1 min | 927 ms | 65.58 s |
 
 #### TPS & CPS
 
-| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| 平均 TPS | 72.5 | **406.9** | 116.0 | 22.0 | 68.4 |
-| 平均 CPS | **299.9** | 294.7 | 290.2 | 99.3 | 110.9 |
+| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| 平均 TPS | 72.5 | 406.9 | 116.0 | 22.0 | 68.4 | 114.0 | **489.0** |
+| 平均 CPS | 299.9 | 294.7 | 290.2 | 99.3 | 110.9 | **520.2** | 507.6 |
 
-> TPS 包含 thinking tokens, 因此 Think-On 的 TPS 虚高。**CPS (字符/秒) 更能反映真实输出速度** — 三个模型的 CPS 差距不大 (Doubao ≈ MiniMax ≈ 290, Kimi ≈ 100-110)。
+> TPS 包含 thinking tokens, 因此 Think-On 的 TPS 虚高。**CPS (字符/秒) 更能反映真实输出速度**。原生 Kimi CPS **520** 远超方舟版 Kimi (99-111) 和 Doubao/MiniMax (290)。
 
 #### 延迟 & 耗时
 
-| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| 平均生成时间 | **19.71 s** | 26.86 s | 24.88 s | 1.2 min | 56.51 s |
-| 平均总延迟 | **20.04 s** | 2.7 min | 53.17 s | 1.2 min | 2.7 min |
-| 测试总耗时 | **2.0 min** | 12.8 min | 4.7 min | 5.4 min | 15.2 min |
+| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| 平均生成时间 | 19.71 s | 26.86 s | 24.88 s | 1.2 min | 56.51 s | **18.02 s** | 12.92 s |
+| 平均总延迟 | 20.04 s | 2.7 min | 53.17 s | 1.2 min | 2.7 min | **18.73 s** | 59.44 s |
+| 测试总耗时 | 2.0 min | 12.8 min | 4.7 min | 5.4 min | 15.2 min | **1.7 min** | 6.8 min |
 
 #### Thinking 阶段统计
 
-| 指标 | Doubao-Think | MiniMax | Kimi-On |
-|------|-------------|---------|---------|
-| 平均 Think 耗时 | 2.7 min | 47.51 s | 2.7 min |
-| 最大 Think 耗时 | 3.4 min | 1.3 min | 3.3 min |
-| Think 总 Tokens | 47.5k | 6,680 | 14.8k |
-| 涉及 Thinking 题数 | 4/4 | 4/4 | 4/4 |
+| 指标 | Doubao-Think | MiniMax | Kimi-On (方舟) | **Native-On** |
+|------|-------------|---------|---------|-----------|
+| 平均 Think 耗时 | 2.7 min | 47.51 s | 2.7 min | **58.74 s** |
+| 最大 Think 耗时 | 3.4 min | 1.3 min | 3.3 min | **1.4 min** |
+| Think 总 Tokens | 47.5k | 6,680 | 14.8k | **29.0k** |
+| 涉及 Thinking 题数 | 4/4 | 4/4 | 4/4 | 4/4 |
 
 ### 逐题质量对比
 
-| 任务 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| M01 并发安全的连接池 | 79.0 | **86.0** | 85.0 | 84.0 | 72.0 |
-| M03 修复 Race Condition | 78.7 | **88.2** | 69.2 | 78.7 | 82.3 |
-| H01 实现跳表 (Skip List) | 90.7 | **95.4** | 89.9 | 81.4 | 87.3 |
-| X02 Promise.allSettled | 76.3 | **86.3** | 84.4 | 85.6 | 84.3 |
+| 任务 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| M01 并发安全的连接池 | 79.0 | 86.0 | 85.0 | 84.0 | 72.0 | **87.0** | 82.0 |
+| M03 修复 Race Condition | 78.7 | 88.2 | 69.2 | 78.7 | 82.3 | 82.3 | **91.0** |
+| H01 实现跳表 (Skip List) | 90.7 | **95.4** | 89.9 | 81.4 | 87.3 | 90.7 | 77.3 |
+| X02 Promise.allSettled | 76.3 | 86.3 | 84.4 | 85.6 | 84.3 | **90.6** | 81.0 |
 
 ### 逐题 TTFT 对比
 
-| 任务 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| M01 并发安全的连接池 | **328 ms** | 2.8 min | 27.72 s | 224 ms | 2.1 min |
-| M03 修复 Race Condition | **418 ms** | 1.1 min | 13.05 s | 136 ms | 1.3 min |
-| H01 实现跳表 (Skip List) | **292 ms** | 2.1 min | 53.29 s | 147 ms | 1.7 min |
-| X02 Promise.allSettled | **272 ms** | 2.9 min | 19.09 s | 204 ms | 1.9 min |
+| 任务 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| M01 并发安全的连接池 | **328 ms** | 2.8 min | 27.72 s | 224 ms | 2.1 min | 927 ms | 65.58 s |
+| M03 修复 Race Condition | **418 ms** | 1.1 min | 13.05 s | 136 ms | 1.3 min | 694 ms | 37.04 s |
+| H01 实现跳表 (Skip List) | **292 ms** | 2.1 min | 53.29 s | 147 ms | 1.7 min | 546 ms | 32.20 s |
+| X02 Promise.allSettled | **272 ms** | 2.9 min | 19.09 s | 204 ms | 1.9 min | 680 ms | 51.24 s |
 
 ### 吞吐测试 (并发=2)
 
-| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off | Kimi-On |
-|------|---------------|-------------|---------|----------|---------|
-| RPS | **1.13** | 0.19 | 0.18 | 0.42 | 0.04 |
-| 平均延迟 | **1.60 s** | 7.20 s | 8.70 s | 4.71 s | 34.19 s |
-| P95 延迟 | **1.76 s** | 9.98 s | 10.82 s | 4.73 s | 46.97 s |
-| 平均 TPS | 84.7 | 327.8 | **362.2** | 21.6 | 180.0 |
+| 指标 | Doubao-Default | Doubao-Think | MiniMax | Kimi-Off (方舟) | Kimi-On (方舟) | **Native-Off** | **Native-On** |
+|------|---------------|-------------|---------|----------|---------|------------|-----------|
+| RPS | **1.13** | 0.19 | 0.18 | 0.42 | 0.04 | 0.79 | 0.16 |
+| 平均延迟 | **1.60 s** | 7.20 s | 8.70 s | 4.71 s | 34.19 s | 2.44 s | 12.30 s |
+| P95 延迟 | **1.76 s** | 9.98 s | 10.82 s | 4.73 s | 46.97 s | 2.53 s | 12.34 s |
+| 平均 TPS | 84.7 | 327.8 | **362.2** | 21.6 | 180.0 | 56.7 | 41.6 |
 
 ### 分析与结论
 
-1. **豆包 Thinking 是"真提升"**: 开启后质量从 81.2 跳到 **89.0** (+9.6%), 4 道题全面提升, 难题提升最大 (跳表 +4.7, Race Condition +9.5)。代价是 TTFT 从 327ms 涨到 2.2 min, 总耗时 6 倍。**适合追求最高代码质量的场景**。
+1. **原生 Kimi-Think-Off 登顶**: 综合 86.7 (S 级), 质量 87.6, 速度 94.2, 总耗时仅 1.7 分钟。同一个 kimi-k2.5 模型, 原生 API 的 CPS 是方舟版的 **5 倍** (520 vs 99), 质量也高 5 分。**原生 Kimi 是目前最强编码模型配置**。
 
-2. **Kimi Thinking 是"低 ROI"**: 关 thinking 后质量 82.4, 开 thinking 后反而 81.5 — **质量没有提升**。但耗时从 5.4 min 涨到 15.2 min (2.8 倍)。**强烈建议 Kimi K2.5 关闭 thinking**。
+2. **方舟 Kimi 疑似限速/量化**: 同一个 kimi-k2.5 模型, 方舟版 CPS 仅 99-111 字符/秒, 原生版 507-520 字符/秒, 差距 5 倍。质量也有明显差距 (方舟 82.4 vs 原生 87.6)。如果你在用方舟的 Kimi, **强烈建议切换到原生 API**。
 
-3. **Doubao Default 是日常首选**: 综合第一 (A 级 81.4), TTFT 327ms, 总耗时仅 2 分钟。如果需要更高质量, 可开 thinking 但要接受 6 倍耗时。
+3. **Kimi Thinking 不值得开**: 不管方舟还是原生, Kimi K2.5 开 thinking 后质量**不升反降** (原生: 87.6→82.8, 方舟: 82.4→81.5)。代价是 3-4 倍耗时。**Kimi K2.5 务必关闭 thinking**。
 
-4. **MiniMax 受 thinking 拖累**: 服务端默认开启 thinking (无法关闭), Think 平均耗时 47.51s, 导致 TTFT 28.29s。质量 82.1 与 Kimi-Off 相当, 但速度慢一倍。
+4. **豆包 Thinking 是"真提升"**: 开启后质量从 81.2 跳到 **89.0** (+9.6%), 4 道题全面提升。代价是 TTFT 从 327ms 涨到 2.2 min, 总耗时 6 倍。**适合追求最高代码质量的场景**。
 
-5. **Kimi-Think-Off vs Doubao-Default**: 两者质量接近 (82.4 vs 81.2), 但 Doubao 的 CPS 是 Kimi 的 **3 倍** (300 vs 99), TTFT 快 **1.8 倍** (327ms vs 178ms 虽然 Kimi 更低, 但生成速度远慢)。总耗时 Doubao 2.0 min vs Kimi 5.4 min。
+5. **MiniMax 受 thinking 拖累**: 服务端默认开启 thinking (无法关闭), Think 平均耗时 47.51s, 导致 TTFT 28.29s。质量 82.1, 如能关 thinking 可能更好。
 
 ### max_tokens 上限实测
 
