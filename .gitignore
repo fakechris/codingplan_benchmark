@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Secrets — 绝对不要提交任何 API key / token
+config.yaml
+*.env
+.env*
+credentials.*
+secrets.*
+
+# Results (可选提交, 但默认忽略运行产物)
+# results/
