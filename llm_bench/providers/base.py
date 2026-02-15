@@ -27,8 +27,14 @@ class CompletionResult:
 
     # 时间指标
     request_start: float = 0.0
-    first_token_time: float = 0.0
+    first_token_time: float = 0.0   # 第一个 text token 的时间
     end_time: float = 0.0
+
+    # Thinking 阶段指标 (reasoning 模型)
+    thinking_start_time: float = 0.0   # thinking 阶段开始时间
+    thinking_end_time: float = 0.0     # thinking 阶段结束时间
+    thinking_tokens: int = 0           # thinking 消耗的 token 数
+    thinking_text: str = ""            # thinking 内容 (调试用, 不计入质量评分)
 
     # Token 统计
     prompt_tokens: int = 0
@@ -54,6 +60,18 @@ class CompletionResult:
         if self.end_time and self.request_start:
             return self.end_time - self.request_start
         return 0.0
+
+    @property
+    def thinking_time(self) -> float:
+        """Thinking 阶段耗时 (秒), reasoning 模型专属"""
+        if self.thinking_end_time and self.thinking_start_time:
+            return self.thinking_end_time - self.thinking_start_time
+        return 0.0
+
+    @property
+    def has_thinking(self) -> bool:
+        """是否有 thinking 阶段"""
+        return self.thinking_time > 0
 
     @property
     def gen_time(self) -> float:

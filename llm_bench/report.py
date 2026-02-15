@@ -149,6 +149,22 @@ def _print_objective_summary(result: BenchmarkResult):
          "总输出字符", _fmt_int(m["total_output_chars"])),
     ]
 
+    # Thinking 阶段 (reasoning 模型)
+    th = m.get("thinking")
+    if th:
+        rows.append(
+            (f"[bold magenta]Thinking 平均耗时[/bold magenta]",
+             f"[magenta]{_fmt_time(th['time']['avg'])}[/magenta]",
+             f"[bold magenta]Thinking 范围[/bold magenta]",
+             f"[magenta]{_fmt_time(th['time']['min'])} ~ {_fmt_time(th['time']['max'])}[/magenta]"),
+        )
+        rows.append(
+            (f"[magenta]Thinking 总 Tokens[/magenta]",
+             f"[magenta]{_fmt_int(th['total_thinking_tokens'])}[/magenta]",
+             f"[magenta]涉及 Thinking 的题数[/magenta]",
+             f"[magenta]{th['task_count']} 题[/magenta]"),
+        )
+
     for left_k, left_v, right_k, right_v in rows:
         table.add_row(left_k, left_v, "│", right_k, right_v)
 
@@ -161,26 +177,35 @@ def _print_per_task_metrics(result: BenchmarkResult):
     if not result.task_results:
         return
 
+    # 检测是否有任何 thinking 数据
+    has_any_thinking = any(tr.completion.has_thinking for tr in result.task_results if not tr.completion.error)
+
     tt = Table(title="逐题详情 (Per-Task Metrics)", box=box.SIMPLE_HEAVY, show_header=True)
     tt.add_column("ID", style="cyan", width=4)
-    tt.add_column("任务", width=22)
+    tt.add_column("任务", width=20)
+    if has_any_thinking:
+        tt.add_column("Think", justify="right", width=7, style="magenta")
     tt.add_column("TTFT", justify="right", width=8)
-    tt.add_column("生成", justify="right", width=8)
+    tt.add_column("生成", justify="right", width=7)
     tt.add_column("总延迟", justify="right", width=8)
-    tt.add_column("TPS", justify="right", width=7)
-    tt.add_column("CPS", justify="right", width=7)
-    tt.add_column("Tokens", justify="right", width=7)
-    tt.add_column("字符", justify="right", width=7)
-    tt.add_column("质量", justify="right", width=6)
+    tt.add_column("TPS", justify="right", width=6)
+    tt.add_column("CPS", justify="right", width=6)
+    tt.add_column("Tok", justify="right", width=6)
+    tt.add_column("字符", justify="right", width=6)
+    tt.add_column("质量", justify="right", width=5)
     tt.add_column("", width=4)
 
     for tr in result.task_results:
         c = tr.completion
         status = "[red]FAIL[/red]" if c.error else "[green]OK[/green]"
         qc = _sc(tr.quality.final_score)
-        tt.add_row(
+        row = [
             tr.task.id,
-            tr.task.title[:22],
+            tr.task.title[:20],
+        ]
+        if has_any_thinking:
+            row.append(_fmt_time(c.thinking_time) if c.has_thinking else "-")
+        row.extend([
             _fmt_time(c.ttft),
             _fmt_time(c.gen_time),
             _fmt_time(c.total_latency),
@@ -190,7 +215,8 @@ def _print_per_task_metrics(result: BenchmarkResult):
             _fmt_int(c.output_chars),
             f"[{qc}]{tr.quality.final_score:.1f}[/{qc}]",
             status,
-        )
+        ])
+        tt.add_row(*row)
     console.print(tt)
     console.print()
 
@@ -322,6 +348,15 @@ def _print_metrics_comparison(results: list[BenchmarkResult]):
         ("  总输出 Tokens",  lambda m: m.get("total_output_tokens", 0),     _fmt_int,   None),
         ("  总输出字符",     lambda m: m.get("total_output_chars", 0),      _fmt_int,   None),
     ]
+
+    # Thinking 段 (如果任何模型有 thinking 数据)
+    if any(m.get("thinking") for m in metrics_list):
+        rows_def.extend([
+            ("─── Thinking (推理) ───", None, None, None),
+            ("  平均 Think 耗时", lambda m: m.get("thinking", {}).get("time", {}).get("avg", 0), _fmt_time, False),
+            ("  最大 Think 耗时", lambda m: m.get("thinking", {}).get("time", {}).get("max", 0), _fmt_time, False),
+            ("  Think 总 Tokens", lambda m: m.get("thinking", {}).get("total_thinking_tokens", 0), _fmt_int, None),
+        ])
 
     for row_name, getter, formatter, higher_better in rows_def:
         if getter is None:
