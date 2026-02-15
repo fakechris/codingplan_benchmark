@@ -1,0 +1,76 @@
+# LLM Coding Benchmark 配置文件 (示例)
+# 复制为 config.yaml 后填入你的 API Key 即可使用
+#   cp config.example.yaml config.yaml
+
+settings:
+  temperature: 0.0
+  concurrency: 2               # 吞吐测试并发量
+  throughput_multiplier: 1     # 吞吐请求数 = concurrency × multiplier
+  consistency_runs: 1          # 一致性测试轮数
+  max_quality_tasks: 2         # 质量题数上限 (0=不限)
+  anti_cache: true             # prompt 追加随机 nonce 防缓存命中
+  enable_judge: false          # Judge 模型评分 (需配置 judge 段)
+  output_dir: ./results
+  output_format:
+    - terminal
+    - json
+  # difficulty: easy           # 只跑指定难度
+
+# judge:                       # Judge 模型 (可选, 用强模型效果更好)
+#   provider: openai
+#   model: gpt-4o
+#   api_key: "sk-xxx"
+
+models:
+  # === MiniMax M2.5 (Anthropic 兼容 API) ===
+  - name: MiniMax-M2.5
+    provider: anthropic_compat
+    model: MiniMax-M2.5
+    base_url: https://api.minimax.io/anthropic
+    api_key: "<YOUR_MINIMAX_API_KEY>"
+    max_tokens: 8192
+    timeout: 120
+    retry_count: 2
+
+  # === Kimi K2.5 (Anthropic 兼容 API, 火山引擎 ARK) ===
+  - name: Kimi-K2.5
+    provider: anthropic_compat
+    model: kimi-k2.5
+    base_url: https://ark.cn-beijing.volces.com/api/coding
+    api_key: "<YOUR_VOLCENGINE_API_KEY>"
+    max_tokens: 16384
+    timeout: 120
+    retry_count: 2
+
+  # === Doubao Seed 2.0 Code (Anthropic 兼容 API, 火山引擎 ARK) ===
+  - name: Doubao-Seed-2.0-Code
+    provider: anthropic_compat
+    model: doubao-seed-2.0-code
+    base_url: https://ark.cn-beijing.volces.com/api/coding
+    api_key: "<YOUR_VOLCENGINE_API_KEY>"
+    max_tokens: 8192
+    timeout: 120
+    retry_count: 2
+
+  # === OpenAI GPT-4o (示例) ===
+  # - name: GPT-4o
+  #   provider: openai
+  #   model: gpt-4o
+  #   api_key: "<YOUR_OPENAI_API_KEY>"
+  #   max_tokens: 4096
+
+  # === Claude Sonnet (示例) ===
+  # - name: Claude-Sonnet
+  #   provider: anthropic
+  #   model: claude-sonnet-4-20250514
+  #   api_key: "<YOUR_ANTHROPIC_API_KEY>"
+  #   max_tokens: 8192
+
+  # === 自定义 OpenAI 兼容服务 ===
+  # - name: My-Local-LLM
+  #   provider: openai_compat
+  #   model: my-model-v1
+  #   base_url: http://localhost:8080/v1
+  #   api_key: "dummy"
+  #   temperature: 0.7
+  #   max_tokens: 2048

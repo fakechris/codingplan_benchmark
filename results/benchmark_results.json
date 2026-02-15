@@ -1,0 +1,321 @@
+{
+  "benchmark": "llm-coding-bench",
+  "version": "0.3.0",
+  "results": [
+    {
+      "model": "MiniMax-M2.5",
+      "model_name": "MiniMax-M2.5",
+      "provider": "AnthropicCompatProvider",
+      "timestamp": "2026-02-15T17:45:44.880395",
+      "wall_time_s": 129.17,
+      "scores": {
+        "overall": 61.2,
+        "quality": 63.8,
+        "speed": 38.1,
+        "throughput": 53.0,
+        "consistency": 100
+      },
+      "objective_metrics": {
+        "task_count": 2,
+        "success_rate": 100.0,
+        "wall_time": 129.166836977005,
+        "total_output_tokens": 1694,
+        "total_output_chars": 5084,
+        "ttft": {
+          "min": 15.881911039352417,
+          "max": 25.356944799423218,
+          "avg": 20.619427919387817,
+          "p50": 25.356944799423218
+        },
+        "tps": {
+          "min": 30.287069426960837,
+          "max": 100.391901233401,
+          "avg": 65.33948533018092,
+          "p50": 100.391901233401
+        },
+        "latency": {
+          "min": 27.697771072387695,
+          "max": 64.05428385734558,
+          "avg": 45.87602746486664,
+          "p50": 64.05428385734558
+        },
+        "gen_time": {
+          "min": 2.3408262729644775,
+          "max": 48.172372817993164,
+          "avg": 25.25659954547882,
+          "p50": 48.172372817993164
+        },
+        "cps": {
+          "min": 90.9027258537776,
+          "max": 301.17570370020303,
+          "avg": 196.03921477699032,
+          "p50": 301.17570370020303
+        }
+      },
+      "tasks": [
+        {
+          "task_id": "E01",
+          "task_title": "IPv4 地址验证",
+          "difficulty": "easy",
+          "category": "code_gen",
+          "ttft_s": 25.357,
+          "gen_time_s": 2.341,
+          "total_latency_s": 27.698,
+          "tps": 100.4,
+          "chars_per_second": 301.2,
+          "completion_tokens": 235,
+          "prompt_tokens": 0,
+          "output_chars": 705,
+          "quality_score": 67.1,
+          "rule_score": 78.6,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "E02",
+          "task_title": "LRU Cache 实现",
+          "difficulty": "easy",
+          "category": "algorithm",
+          "ttft_s": 15.882,
+          "gen_time_s": 48.172,
+          "total_latency_s": 64.054,
+          "tps": 30.3,
+          "chars_per_second": 90.9,
+          "completion_tokens": 1459,
+          "prompt_tokens": 0,
+          "output_chars": 4379,
+          "quality_score": 60.5,
+          "rule_score": 42.5,
+          "judge_score": 0.0,
+          "error": null
+        }
+      ],
+      "throughput": {
+        "concurrency": 2,
+        "rps": 0.3,
+        "success_rate": 100.0,
+        "p50_latency": 6.09,
+        "p95_latency": 6.616,
+        "avg_tps": 72.2
+      },
+      "consistency": [
+        {
+          "task_id": "C01",
+          "avg_score": 42.9,
+          "stddev": 0.0,
+          "similarity": 1.0
+        }
+      ]
+    },
+    {
+      "model": "kimi-k2.5",
+      "model_name": "Kimi-K2.5",
+      "provider": "AnthropicCompatProvider",
+      "timestamp": "2026-02-15T17:47:54.058577",
+      "wall_time_s": 620.3,
+      "scores": {
+        "overall": 52.6,
+        "quality": 58.6,
+        "speed": 14.8,
+        "throughput": 50.4,
+        "consistency": 100
+      },
+      "objective_metrics": {
+        "task_count": 2,
+        "success_rate": 100.0,
+        "wall_time": 620.2996692657471,
+        "total_output_tokens": 1526,
+        "total_output_chars": 4580,
+        "ttft": {
+          "min": 111.83298587799072,
+          "max": 174.41908311843872,
+          "avg": 143.12603449821472,
+          "p50": 174.41908311843872
+        },
+        "tps": {
+          "min": 24.079561848054972,
+          "max": 32.860562222518176,
+          "avg": 28.470062035286574,
+          "p50": 32.860562222518176
+        },
+        "latency": {
+          "min": 146.19027996063232,
+          "max": 190.90609407424927,
+          "avg": 168.5481870174408,
+          "p50": 190.90609407424927
+        },
+        "gen_time": {
+          "min": 16.487010955810547,
+          "max": 34.3572940826416,
+          "avg": 25.422152519226074,
+          "p50": 34.3572940826416
+        },
+        "cps": {
+          "min": 72.29933935234642,
+          "max": 98.6107925685488,
+          "avg": 85.45506596044761,
+          "p50": 98.6107925685488
+        }
+      },
+      "tasks": [
+        {
+          "task_id": "E01",
+          "task_title": "IPv4 地址验证",
+          "difficulty": "easy",
+          "category": "code_gen",
+          "ttft_s": 174.419,
+          "gen_time_s": 16.487,
+          "total_latency_s": 190.906,
+          "tps": 24.1,
+          "chars_per_second": 72.3,
+          "completion_tokens": 397,
+          "prompt_tokens": 0,
+          "output_chars": 1192,
+          "quality_score": 65.6,
+          "rule_score": 74.4,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "E02",
+          "task_title": "LRU Cache 实现",
+          "difficulty": "easy",
+          "category": "algorithm",
+          "ttft_s": 111.833,
+          "gen_time_s": 34.357,
+          "total_latency_s": 146.19,
+          "tps": 32.9,
+          "chars_per_second": 98.6,
+          "completion_tokens": 1129,
+          "prompt_tokens": 0,
+          "output_chars": 3388,
+          "quality_score": 51.5,
+          "rule_score": 42.5,
+          "judge_score": 0.0,
+          "error": null
+        }
+      ],
+      "throughput": {
+        "concurrency": 2,
+        "rps": 0.04,
+        "success_rate": 100.0,
+        "p50_latency": 41.444,
+        "p95_latency": 52.116,
+        "avg_tps": 19.3
+      },
+      "consistency": [
+        {
+          "task_id": "C01",
+          "avg_score": 37.2,
+          "stddev": 0.0,
+          "similarity": 1.0
+        }
+      ]
+    },
+    {
+      "model": "doubao-seed-2.0-code",
+      "model_name": "Doubao-Seed-2.0-Code",
+      "provider": "AnthropicCompatProvider",
+      "timestamp": "2026-02-15T17:58:14.382330",
+      "wall_time_s": 51.76,
+      "scores": {
+        "overall": 73.3,
+        "quality": 60.1,
+        "speed": 89.1,
+        "throughput": 59.8,
+        "consistency": 100
+      },
+      "objective_metrics": {
+        "task_count": 2,
+        "success_rate": 100.0,
+        "wall_time": 51.76217985153198,
+        "total_output_tokens": 1508,
+        "total_output_chars": 4526,
+        "ttft": {
+          "min": 0.24800682067871094,
+          "max": 0.3386051654815674,
+          "avg": 0.29330599308013916,
+          "p50": 0.3386051654815674
+        },
+        "tps": {
+          "min": 80.23492435215702,
+          "max": 85.36967906691885,
+          "avg": 82.80230170953794,
+          "p50": 85.36967906691885
+        },
+        "latency": {
+          "min": 1.767683982849121,
+          "max": 17.522279977798462,
+          "avg": 9.644981980323792,
+          "p50": 17.522279977798462
+        },
+        "gen_time": {
+          "min": 1.4290788173675537,
+          "max": 17.27427315711975,
+          "avg": 9.351675987243652,
+          "p50": 17.27427315711975
+        },
+        "cps": {
+          "min": 240.76266261228074,
+          "max": 256.80878866851816,
+          "avg": 248.78572564039945,
+          "p50": 256.80878866851816
+        }
+      },
+      "tasks": [
+        {
+          "task_id": "E01",
+          "task_title": "IPv4 地址验证",
+          "difficulty": "easy",
+          "category": "code_gen",
+          "ttft_s": 0.339,
+          "gen_time_s": 1.429,
+          "total_latency_s": 1.768,
+          "tps": 85.4,
+          "chars_per_second": 256.8,
+          "completion_tokens": 122,
+          "prompt_tokens": 0,
+          "output_chars": 367,
+          "quality_score": 47.1,
+          "rule_score": 56.8,
+          "judge_score": 0.0,
+          "error": null
+        },
+        {
+          "task_id": "E02",
+          "task_title": "LRU Cache 实现",
+          "difficulty": "easy",
+          "category": "algorithm",
+          "ttft_s": 0.248,
+          "gen_time_s": 17.274,
+          "total_latency_s": 17.522,
+          "tps": 80.2,
+          "chars_per_second": 240.8,
+          "completion_tokens": 1386,
+          "prompt_tokens": 0,
+          "output_chars": 4159,
+          "quality_score": 73.1,
+          "rule_score": 58.5,
+          "judge_score": 0.0,
+          "error": null
+        }
+      ],
+      "throughput": {
+        "concurrency": 2,
+        "rps": 0.98,
+        "success_rate": 100.0,
+        "p50_latency": 2.009,
+        "p95_latency": 2.036,
+        "avg_tps": 66.3
+      },
+      "consistency": [
+        {
+          "task_id": "C01",
+          "avg_score": 42.2,
+          "stddev": 0.0,
+          "similarity": 1.0
+        }
+      ]
+    }
+  ]
+}
