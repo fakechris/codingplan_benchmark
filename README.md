@@ -118,7 +118,7 @@ models:
     # enabled: false           # 临时禁用
 ```
 
-支持的 Provider: `openai`, `anthropic`, `openai_compat`, `anthropic_compat`, `kimi`, `minimax`, `deepseek`, `qwen`, `zhipu`, `doubao`, `baichuan`, `yi`, `xai`, `gemini`, `mistral`
+支持的 Provider: `openai`, `anthropic`, `openai_compat`, `anthropic_compat`, `kimi`, `minimax`, `deepseek`, `qwen`, `qwen_coding`, `zhipu`, `doubao`, `baichuan`, `yi`, `grok`, `gemini`, `mistral`, `cucloud`
 
 ### 测试量控制
 
@@ -333,6 +333,87 @@ models:
 
 ---
 
+## 评测报告: 2026-02-28 — 新增 Qwen3.5-Plus / CUCloud GLM-5
+
+**测试环境**: macOS, Python 3.14.3, 网络环境 (中国大陆)  
+**测试配置**: 4 道 medium/hard/expert 题, 吞吐并发 2, 一致性 1 轮, anti-cache 开启  
+**测试时间**: 2026-02-28 17:30 ~ 18:40 (UTC+8)  
+**本次重点**: 新增阿里云百炼 Qwen3.5-Plus 和联通云 CUCloud GLM-5, 对比全系 9 个模型
+
+### 新增模型
+
+| 模型 | 底层 | Provider | API 兼容 | max_tokens | 备注 |
+|------|------|----------|----------|------------|------|
+| Qwen3.5-Plus | qwen3.5-plus | 阿里云百炼 DashScope | OpenAI | 32768 | 有服务端 reasoning (TTFT 长) |
+| CUCloud-GLM-5 | glm-5 | 联通云 CUCloud | OpenAI | 16384 | Z.ai GLM-5, 含 inline thinking |
+
+> **注**: Qwen3-Coder-Plus 在首轮评测中得分 82.6 (A), 但因进程中断数据未持久化, 后因 DashScope 账户欠费无法复测。
+
+### 全系综合排行 (9 个模型)
+
+| # | 模型 | 综合 | 质量 | 速度 | 吞吐 | 一致性 | 等级 | 总耗时 |
+|---|------|------|------|------|------|--------|------|--------|
+| 1 | **Kimi-Native-Think-Off** | **86.7** | 87.6 | **94.2** | **57.9** | 100.0 | **S** | **1.7 min** |
+| 2 | Doubao-Default | 81.4 | 81.2 | 82.7 | 61.3 | 100.0 | A | 2.0 min |
+| 3 | Doubao-Think-On | 77.8 | 89.0 | 60.0 | 51.9 | 100.0 | B | 12.8 min |
+| 4 | Kimi-Native-Think-On | 75.0 | 82.8 | 60.0 | 51.6 | 100.0 | B | 6.8 min |
+| 5 | MiniMax-M2.5 | 74.7 | 82.1 | 60.0 | 51.8 | 100.0 | B | 4.7 min |
+| 6 | **Qwen3.5-Plus** | **73.5** | 82.1 | 56.2 | 50.3 | 100.0 | B | 8.3 min |
+| 7 | Kimi-Think-Off (方舟) | 72.9 | 82.4 | 50.7 | 54.2 | 100.0 | B | 5.4 min |
+| 8 | **CUCloud-GLM-5** | **72.0** | **93.1** | 30.2 | 50.0 | 100.0 | B | 29.2 min |
+| 9 | Kimi-Think-On (方舟) | 69.2 | 81.5 | 40.0 | 50.4 | 100.0 | C | 15.2 min |
+
+### Qwen3.5-Plus 详情
+
+| 指标 | 值 |
+|------|-----|
+| 平均 TTFT | 59.9 s (服务端 reasoning 导致, 8.1s ~ 87.0s) |
+| 平均 TPS | 93.9 |
+| 平均 CPS | 281.9 |
+| 平均生成时间 | 23.7 s |
+| 平均总延迟 | 83.6 s |
+| 总输出 Tokens | 8,958 |
+| 吞吐 RPS (并发=2) | 0.03 |
+
+逐题质量: M01=79.0, M03=83.7, H01=85.3, X02=80.6
+
+> Qwen3.5-Plus 的 **生成速度不错** (CPS 281.9, 接近 Doubao), 但 **TTFT 非常高** (平均 60s), 说明有服务端 reasoning/thinking 过程。质量 82.1 与 Doubao-Default / Kimi-Think-Off 相当。
+
+### CUCloud GLM-5 详情
+
+| 指标 | 值 |
+|------|-----|
+| 平均 TTFT | 3.2 s (1.7s ~ 6.4s) |
+| 平均 TPS | 36.6 |
+| 平均 CPS | 109.9 |
+| 平均生成时间 | 4.7 min |
+| 平均总延迟 | 4.8 min |
+| 总输出 Tokens | 39,730 (含 inline thinking) |
+| 吞吐 RPS (并发=2) | ~0 |
+
+逐题质量: M01=**91.0**, M03=**88.2**, H01=**97.7**, X02=**95.6**
+
+> CUCloud GLM-5 质量 **93.1 (S 级)**, 是全部 9 个模型中**质量最高**的。H01 跳表得分 97.7 远超所有其他模型。但速度极慢 (TPS 仅 36.6, 平均每题 4.8 分钟), 且模型将 thinking 过程 inline 输出到 content 中 (导致 token 数虚高 39.7k)。适合**对质量要求极高、不赶时间**的场景。
+
+### 逐题质量对比 (新增 vs 已有)
+
+| 任务 | Kimi-Native-Off | Doubao-Think | **Qwen3.5-Plus** | **CUCloud-GLM-5** |
+|------|----------------|-------------|-----------------|------------------|
+| M01 并发安全的连接池 | 87.0 | 86.0 | 79.0 | **91.0** |
+| M03 修复 Race Condition | 82.3 | 88.2 | 83.7 | **88.2** |
+| H01 实现跳表 (Skip List) | 90.7 | 95.4 | 85.3 | **97.7** |
+| X02 Promise.allSettled | 90.6 | 86.3 | 80.6 | **95.6** |
+
+### 技术发现
+
+1. **Python 3.14 + anyio TLS 兼容性问题**: anyio 4.12.1 的 `TLSStream.wrap` 对部分 HTTPS 服务器 (dashscope.aliyuncs.com 等) 握手失败, 原因是 STARTTLS 方式在某些服务器上触发 `EndOfStream`。解决方案: 自定义 httpcore 网络后端 (`_async_backend.py`), 使用 asyncio 原生 SSL 连接。
+
+2. **CUCloud 使用 OpenAI 兼容 API**: 联通云 CUCloud 的 `/v1/chat/completions` 端点使用 `Authorization: Bearer` 认证, 是 OpenAI 兼容格式 (非 Anthropic)。
+
+3. **CUCloud GLM-5 inline thinking**: 模型的推理过程直接输出在 `content` 字段中 (以 `</think>` 分隔), 不像 Anthropic 的 `thinking` block 分离。导致输出 token 数虚高。
+
+---
+
 ## 项目结构
 
 ```
@@ -348,7 +429,8 @@ benchmark/
 │   │   ├── base.py          # Provider 抽象基类
 │   │   ├── openai_compat.py # OpenAI 兼容 Provider
 │   │   ├── anthropic_compat.py  # Anthropic 兼容 Provider
-│   │   └── registry.py      # Provider 预设注册表
+│   │   ├── registry.py      # Provider 预设注册表
+│   │   └── _async_backend.py  # asyncio 网络后端 (修复 Python 3.14 TLS)
 │   └── tasks/
 │       └── coding_plans.py  # 评测任务集 (19 道)
 ├── config.example.yaml      # 配置模板 (无 API Key)

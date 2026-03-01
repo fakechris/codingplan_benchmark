@@ -66,6 +66,40 @@ models:
   #   api_key: "<YOUR_ANTHROPIC_API_KEY>"
   #   max_tokens: 8192
 
+  # === 阿里云百炼 Coding Plan (OpenAI 兼容 API, 支持 Qwen-Coder 系列) ===
+  # - name: Qwen3-Coder-Plus
+  #   provider: qwen
+  #   model: qwen3-coder-plus
+  #   api_key: "<YOUR_DASHSCOPE_API_KEY>"
+  #   max_tokens: 32768
+  #   timeout: 180
+  #   retry_count: 2
+
+  # - name: Qwen3.5-Plus
+  #   provider: qwen
+  #   model: qwen3.5-plus
+  #   api_key: "<YOUR_DASHSCOPE_API_KEY>"
+  #   max_tokens: 32768
+  #   timeout: 180
+  #   retry_count: 2
+
+  # === 联通云 CUCloud Coding Plan (OpenAI 兼容 API, 整合 GLM-5/M2.5/Qwen3.5) ===
+  # - name: CUCloud-GLM-5
+  #   provider: cucloud
+  #   model: glm-5
+  #   api_key: "<YOUR_CUCLOUD_API_KEY>"
+  #   max_tokens: 16384
+  #   timeout: 600
+  #   retry_count: 2
+
+  # - name: CUCloud-Qwen3.5-Plus
+  #   provider: cucloud
+  #   model: qwen3.5-plus
+  #   api_key: "<YOUR_CUCLOUD_API_KEY>"
+  #   max_tokens: 32768
+  #   timeout: 600
+  #   retry_count: 2
+
   # === 自定义 OpenAI 兼容服务 ===
   # - name: My-Local-LLM
   #   provider: openai_compat

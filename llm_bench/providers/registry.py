@@ -90,6 +90,18 @@ PROVIDER_PRESETS: dict[str, dict] = {
         "base_url": "https://api.mistral.ai/v1",
         "env_key": "MISTRAL_API_KEY",
     },
+    # === 阿里云百炼 Coding Plan (Anthropic 兼容) ===
+    "qwen_coding": {
+        "class": "anthropic",
+        "base_url": "https://dashscope.aliyuncs.com/apps/anthropic",
+        "env_key": "DASHSCOPE_API_KEY",
+    },
+    # === 联通云 CUCloud (OpenAI 兼容) ===
+    "cucloud": {
+        "class": "openai",
+        "base_url": "https://aigw-gzgy2.cucloud.cn:8443/v1",
+        "env_key": "CUCLOUD_API_KEY",
+    },
 }
 
 
