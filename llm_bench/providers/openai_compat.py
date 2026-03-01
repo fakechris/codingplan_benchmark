@@ -19,10 +19,15 @@ class OpenAICompatProvider(Provider):
     def __init__(self, model: str, api_key: str, base_url: Optional[str] = None,
                  timeout: float = 120.0, **kwargs):
         super().__init__(model, api_key, base_url, timeout, **kwargs)
+        import httpx
+        from ._async_backend import AsyncIOBackend
+        transport = httpx.AsyncHTTPTransport()
+        transport._pool._network_backend = AsyncIOBackend()
+        http_client = httpx.AsyncClient(transport=transport, timeout=timeout)
         self.client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
-            timeout=timeout,
+            http_client=http_client,
         )
 
     async def complete(
