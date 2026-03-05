@@ -56,6 +56,9 @@ class ModelConfig:
     # === 过滤 ===
     enabled: bool = True                  # 是否启用该模型
 
+    # === 来源 ===
+    coding_plan: Optional[str] = None     # 所属 Coding Plan ID (两层配置时自动填充)
+
     # === 扩展字段 (provider 特定) ===
     extra: dict = field(default_factory=dict)
 
@@ -139,8 +142,83 @@ def _parse_model_config(raw: dict) -> ModelConfig:
     )
 
 
+def _parse_coding_plans(raw_plans: dict) -> list[ModelConfig]:
+    """解析两层结构的 coding_plans 配置，展平为 ModelConfig 列表
+
+    两层结构:
+      coding_plans:
+        plan_id:
+          name: "显示名称"
+          api_key: "共享 Key"
+          api_type: anthropic / openai    # 默认 API 协议
+          base_url: "https://..."         # 默认 Base URL
+          timeout: 120                    # 默认超时
+          max_tokens: 32768               # 默认 max_tokens
+          retry_count: 2                  # 默认重试
+          models:
+            - name: "Model-A"
+              model: "model-id"
+              thinking: enabled           # 可选
+              api_type: openai            # 可选, 覆盖 plan 级别
+              base_url: "https://..."     # 可选, 覆盖 plan 级别
+    """
+    _api_type_to_provider = {
+        "anthropic": "anthropic_compat",
+        "openai": "openai_compat",
+    }
+
+    models: list[ModelConfig] = []
+    for plan_id, plan_data in raw_plans.items():
+        if not isinstance(plan_data, dict):
+            continue
+
+        # Plan 级别默认值
+        plan_api_key = plan_data.get("api_key")
+        plan_env_key = plan_data.get("env_key")
+        plan_api_type = plan_data.get("api_type", "anthropic")
+        plan_base_url = plan_data.get("base_url")
+        plan_retry = plan_data.get("retry_count", 2)
+        plan_retry_delay = plan_data.get("retry_delay", 1.0)
+        plan_timeout = plan_data.get("timeout", 120.0)
+        plan_max_tokens = plan_data.get("max_tokens")
+
+        for m in plan_data.get("models", []):
+            # Model 级别可覆盖 Plan 级别的 api_type / base_url
+            model_api_type = m.get("api_type", plan_api_type)
+            provider = _api_type_to_provider.get(model_api_type, model_api_type)
+
+            mc = ModelConfig(
+                name=m.get("name", m.get("model", "unknown")),
+                provider=provider,
+                model=m["model"],
+                api_key=m.get("api_key", plan_api_key),
+                env_key=m.get("env_key", plan_env_key),
+                base_url=m.get("base_url", plan_base_url),
+                timeout=m.get("timeout", plan_timeout),
+                max_tokens=m.get("max_tokens", plan_max_tokens),
+                retry_count=m.get("retry_count", plan_retry),
+                retry_delay=m.get("retry_delay", plan_retry_delay),
+                thinking=m.get("thinking"),
+                stream=m.get("stream", True),
+                enabled=m.get("enabled", True),
+                temperature=m.get("temperature"),
+                custom_headers=m.get("custom_headers", {}),
+                extra=m.get("extra", {}),
+                coding_plan=plan_id,
+            )
+            if mc.enabled:
+                models.append(mc)
+
+    return models
+
+
 def load_config(config_path: str) -> BenchmarkConfig:
-    """从 YAML 文件加载配置"""
+    """从 YAML 文件加载配置
+
+    支持两种模型配置格式 (可同时使用):
+      1. coding_plans: 两层结构 (推荐, Plan 级别共享 key/url)
+      2. models: 平铺结构 (向后兼容, 每个模型独立配置)
+    """
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"配置文件不存在: {config_path}")
@@ -168,7 +246,12 @@ def load_config(config_path: str) -> BenchmarkConfig:
     if "difficulty" in settings:
         config.difficulty = settings["difficulty"]
 
-    # 模型配置
+    # 两层结构: coding_plans (推荐)
+    coding_plans = raw.get("coding_plans", {})
+    if coding_plans:
+        config.models.extend(_parse_coding_plans(coding_plans))
+
+    # 平铺结构: models (向后兼容)
     for m in raw.get("models", []):
         mc = _parse_model_config(m)
         if mc.enabled:
@@ -186,7 +269,7 @@ def create_default_config() -> str:
     """生成默认配置文件内容"""
     return '''# LLM Coding Benchmark 配置文件
 # ====================================
-# 每个模型都支持完整的独立参数配置
+# 采用两层结构: Coding Plan → Models
 
 settings:
   temperature: 0.0          # 全局默认温度 (各模型可独立覆盖)
@@ -205,110 +288,128 @@ settings:
   # difficulty: medium      # 过滤难度: easy / medium / hard / expert
 
 # Judge 模型 (用于质量评分, 建议用强模型)
-judge:
-  provider: openai
-  model: gpt-4o
-  temperature: 0.0
-  max_tokens: 1024
-  # api_key: sk-xxx         # 或设置环境变量 OPENAI_API_KEY
+# judge:
+#   provider: openai
+#   model: gpt-4o
+#   api_key: "sk-xxx"
 
 # ====================================
-# 待测试的模型列表
+# Coding Plans - 两层配置结构
 # ====================================
-# 每个模型支持以下所有参数 (都是可选的, 有合理默认值):
 #
-# 连接参数:
-#   provider:         必填, 类型名 (openai/anthropic/kimi/minimax/deepseek/qwen/zhipu/doubao/...)
-#   model:            必填, 模型 ID
-#   name:             显示名称 (默认=model)
-#   api_key:          API Key (直接填写)
-#   env_key:          从指定环境变量读取 API Key
-#   base_url:         自定义 API 地址
-#   timeout:          请求超时秒数 (默认 120)
-#   custom_headers:   自定义 HTTP 请求头
+# 第一层 - Coding Plan:
+#   api_key:        共享 API Key (该 Plan 下所有模型共用)
+#   env_key:        或从环境变量读取 API Key
+#   api_type:       API 协议类型 (anthropic / openai), 默认 anthropic
+#   base_url:       默认 API 地址
+#   timeout:        默认超时秒数 (默认 120)
+#   max_tokens:     默认最大输出 token
+#   retry_count:    默认重试次数 (默认 2)
 #
-# 生成参数:
-#   temperature:      温度 (不填则用全局 settings.temperature)
-#   max_tokens:       最大输出 token (不填则用任务默认)
-#   top_p:            nucleus sampling
-#   top_k:            top-k sampling
-#   frequency_penalty: 频率惩罚
-#   presence_penalty:  存在惩罚
-#   stop:             停止词列表
-#   seed:             随机种子 (可复现)
-#
-# 高级参数:
-#   system_prompt:    覆盖任务默认的 system prompt
-#   thinking_budget:  Claude extended thinking token 预算
-#   stream:           是否流式输出 (默认 true, 用于测 TTFT/TPS)
-#
-# 可靠性:
-#   retry_count:      失败重试次数 (默认 2)
-#   retry_delay:      重试间隔秒数 (默认 1.0)
-#
-# 控制:
-#   enabled:          是否启用 (默认 true, 设 false 可临时禁用)
-#
-# 扩展:
-#   extra:            provider 特定的额外参数 (dict)
+# 第二层 - Model (可覆盖 Plan 级别的任何字段):
+#   model:          必填, 模型 ID
+#   name:           显示名称 (默认=model)
+#   api_type:       覆盖 Plan 的 API 协议
+#   base_url:       覆盖 Plan 的 API 地址
+#   thinking:       Thinking 模式: enabled / disabled
+#   timeout:        覆盖超时
+#   max_tokens:     覆盖 max_tokens
+#   temperature:    覆盖温度
+#   enabled:        是否启用 (默认 true)
 
-models:
-  # === OpenAI ===
-  - name: GPT-4o
-    provider: openai
-    model: gpt-4o
-    # api_key: sk-xxx
-    # temperature: 0.0
-    # max_tokens: 4096
+coding_plans:
+  # === 豆包 Coding Plan (火山引擎 ARK, Anthropic 兼容) ===
+  doubao:
+    name: "豆包"
+    api_type: anthropic
+    base_url: https://ark.cn-beijing.volces.com/api/coding
+    api_key: "<YOUR_VOLCENGINE_API_KEY>"
+    max_tokens: 32768
+    models:
+      - name: Doubao-Default
+        model: doubao-seed-2.0-code
+        timeout: 120
+      - name: Doubao-Think-On
+        model: doubao-seed-2.0-code
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Think-On
+        model: kimi-k2.5
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Think-Off
+        model: kimi-k2.5
+        timeout: 120
+        thinking: disabled
 
-  # === Anthropic Claude ===
-  - name: Claude-3.5-Sonnet
-    provider: anthropic
-    model: claude-3-5-sonnet-20241022
-    # api_key: sk-ant-xxx
-    # thinking_budget: 10000   # extended thinking
+  # === Kimi Coding Plan (月之暗面, Anthropic 兼容) ===
+  kimi:
+    name: "Kimi"
+    api_type: anthropic
+    base_url: https://api.kimi.com/coding
+    api_key: "<YOUR_KIMI_API_KEY>"
+    max_tokens: 32768
+    models:
+      - name: Kimi-Native-Think-On
+        model: kimi-k2.5
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Native-Think-Off
+        model: kimi-k2.5
+        timeout: 120
+        thinking: disabled
 
-  # === Kimi (Moonshot) ===
-  - name: Kimi
-    provider: kimi
-    model: moonshot-v1-128k
-    # env_key: MOONSHOT_API_KEY
-    # temperature: 0.3
+  # === MiniMax Coding Plan (Anthropic 兼容) ===
+  minimax:
+    name: "MiniMax"
+    api_type: anthropic
+    base_url: https://api.minimaxi.com/anthropic
+    api_key: "<YOUR_MINIMAX_API_KEY>"
+    max_tokens: 16384
+    timeout: 180
+    models:
+      - name: MiniMax-M2.5
+        model: MiniMax-M2.5
 
-  # === MiniMax ===
-  - name: MiniMax-Text-01
-    provider: minimax
-    model: MiniMax-Text-01
-    # env_key: MINIMAX_API_KEY
+  # === 阿里云百炼 Coding Plan ===
+  ali:
+    name: "阿里云百炼"
+    api_key: "<YOUR_DASHSCOPE_API_KEY>"
+    api_type: openai
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    max_tokens: 32768
+    timeout: 180
+    models:
+      - name: Qwen3-Coder-Plus
+        model: qwen3-coder-plus
+      - name: Qwen3.5-Plus
+        model: qwen3.5-plus
+      # Anthropic 兼容模型 (覆盖 api_type 和 base_url)
+      # - name: Ali-Kimi-Think-On
+      #   model: kimi-k2.5
+      #   api_type: anthropic
+      #   base_url: https://dashscope.aliyuncs.com/apps/anthropic
+      #   timeout: 300
+      #   thinking: enabled
 
-  # === DeepSeek ===
-  - name: DeepSeek-V3
-    provider: deepseek
-    model: deepseek-chat
-    # env_key: DEEPSEEK_API_KEY
+  # === 联通云 CUCloud Coding Plan (OpenAI 兼容) ===
+  # cucloud:
+  #   name: "联通云 CUCloud"
+  #   api_type: openai
+  #   base_url: https://aigw-gzgy2.cucloud.cn:8443/v1
+  #   api_key: "<YOUR_CUCLOUD_API_KEY>"
+  #   max_tokens: 16384
+  #   timeout: 600
+  #   models:
+  #     - name: CUCloud-GLM-5
+  #       model: glm-5
 
-  # === 通义千问 ===
-  - name: Qwen-Max
-    provider: qwen
-    model: qwen-max
-    # env_key: DASHSCOPE_API_KEY
-
-  # === 智谱 GLM ===
-  - name: GLM-4-Plus
-    provider: zhipu
-    model: glm-4-plus
-    # env_key: ZHIPU_API_KEY
-
-  # === 自定义 OpenAI 兼容服务 ===
-  # - name: My-Local-Model
-  #   provider: openai_compat
-  #   model: my-model-v1
-  #   base_url: http://localhost:8080/v1
-  #   api_key: dummy-key
-  #   temperature: 0.7
-  #   max_tokens: 2048
-  #   timeout: 60
-  #   stream: true
-  #   custom_headers:
-  #     X-Custom-Header: my-value
+# ====================================
+# 平铺模型列表 (向后兼容, 可与 coding_plans 同时使用)
+# ====================================
+# models:
+#   - name: GPT-4o
+#     provider: openai
+#     model: gpt-4o
+#     api_key: "sk-xxx"
 '''

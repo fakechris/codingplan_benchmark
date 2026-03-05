@@ -21,90 +21,141 @@ settings:
 #   model: gpt-4o
 #   api_key: "sk-xxx"
 
-models:
-  # === MiniMax M2.5 (Anthropic 兼容 API, 服务端默认开启 thinking) ===
-  - name: MiniMax-M2.5
-    provider: anthropic_compat
-    model: MiniMax-M2.5
-    base_url: https://api.minimax.io/anthropic
+# ====================================
+# Coding Plans - 两层配置结构
+# ====================================
+#
+# 第一层 - Coding Plan (每家服务商一个):
+#   api_key / env_key:  共享 API Key
+#   api_type:           API 协议 (anthropic / openai), 默认 anthropic
+#   base_url:           默认 API 地址
+#   timeout:            默认超时 (秒)
+#   max_tokens:         默认最大输出 token
+#   retry_count:        默认重试次数
+#
+# 第二层 - Model (可覆盖 Plan 级别任何字段):
+#   model:              必填, 模型 ID
+#   name:               显示名称
+#   api_type:           覆盖 API 协议
+#   base_url:           覆盖 API 地址
+#   thinking:           enabled / disabled
+#   timeout / max_tokens / temperature 等均可覆盖
+
+coding_plans:
+  # === MiniMax Coding Plan (Anthropic 兼容, 服务端默认开启 thinking) ===
+  minimax:
+    name: "MiniMax"
+    api_type: anthropic
+    base_url: https://api.minimaxi.com/anthropic
     api_key: "<YOUR_MINIMAX_API_KEY>"
-    max_tokens: 16384          # 实测支持 ≥64K, 建议 16K-32K
-    timeout: 180               # thinking 模式需要更长超时
-    retry_count: 2
+    max_tokens: 16384
+    timeout: 180
+    models:
+      - name: MiniMax-M2.5
+        model: MiniMax-M2.5
 
-  # === Kimi K2.5 (Anthropic 兼容 API, 火山引擎 ARK, 服务端默认开启 thinking) ===
-  - name: Kimi-K2.5
-    provider: anthropic_compat
-    model: kimi-k2.5
+  # === 豆包 Coding Plan (火山引擎 ARK, Anthropic 兼容) ===
+  doubao:
+    name: "豆包"
+    api_type: anthropic
     base_url: https://ark.cn-beijing.volces.com/api/coding
     api_key: "<YOUR_VOLCENGINE_API_KEY>"
-    max_tokens: 32768          # 实测上限 32K (65536 返回 400)
-    timeout: 300               # thinking 阶段可能很长, 建议 300s
-    retry_count: 2
+    max_tokens: 32768
+    models:
+      - name: Doubao-Default
+        model: doubao-seed-2.0-code
+        timeout: 120
+      - name: Doubao-Think-On
+        model: doubao-seed-2.0-code
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Think-On
+        model: kimi-k2.5
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Think-Off
+        model: kimi-k2.5
+        timeout: 120
+        thinking: disabled
 
-  # === Doubao Seed 2.0 Code (Anthropic 兼容 API, 火山引擎 ARK, 无 thinking) ===
-  - name: Doubao-Seed-2.0-Code
-    provider: anthropic_compat
-    model: doubao-seed-2.0-code
-    base_url: https://ark.cn-beijing.volces.com/api/coding
-    api_key: "<YOUR_VOLCENGINE_API_KEY>"
-    max_tokens: 32768          # 实测支持 ≥64K, 建议 32K
-    timeout: 120
-    retry_count: 2
+  # === Kimi Coding Plan (月之暗面, Anthropic 兼容) ===
+  kimi:
+    name: "Kimi"
+    api_type: anthropic
+    base_url: https://api.kimi.com/coding
+    api_key: "<YOUR_KIMI_API_KEY>"
+    max_tokens: 32768
+    models:
+      - name: Kimi-Native-Think-On
+        model: kimi-k2.5
+        timeout: 300
+        thinking: enabled
+      - name: Kimi-Native-Think-Off
+        model: kimi-k2.5
+        timeout: 120
+        thinking: disabled
 
-  # === OpenAI GPT-4o (示例) ===
-  # - name: GPT-4o
-  #   provider: openai
-  #   model: gpt-4o
-  #   api_key: "<YOUR_OPENAI_API_KEY>"
-  #   max_tokens: 4096
+  # === 阿里云百炼 Coding Plan ===
+  ali:
+    name: "阿里云百炼"
+    api_key: "<YOUR_DASHSCOPE_API_KEY>"
+    api_type: openai
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    max_tokens: 32768
+    timeout: 180
+    models:
+      - name: Qwen3-Coder-Plus
+        model: qwen3-coder-plus
+      - name: Qwen3.5-Plus
+        model: qwen3.5-plus
+      # Anthropic 兼容模型 (覆盖 api_type 和 base_url)
+      # - name: Ali-Kimi-Think-On
+      #   model: kimi-k2.5
+      #   api_type: anthropic
+      #   base_url: https://dashscope.aliyuncs.com/apps/anthropic
+      #   timeout: 300
+      #   thinking: enabled
 
-  # === Claude Sonnet (示例) ===
-  # - name: Claude-Sonnet
-  #   provider: anthropic
-  #   model: claude-sonnet-4-20250514
-  #   api_key: "<YOUR_ANTHROPIC_API_KEY>"
-  #   max_tokens: 8192
-
-  # === 阿里云百炼 Coding Plan (OpenAI 兼容 API, 支持 Qwen-Coder 系列) ===
-  # - name: Qwen3-Coder-Plus
-  #   provider: qwen
-  #   model: qwen3-coder-plus
-  #   api_key: "<YOUR_DASHSCOPE_API_KEY>"
-  #   max_tokens: 32768
-  #   timeout: 180
-  #   retry_count: 2
-
-  # - name: Qwen3.5-Plus
-  #   provider: qwen
-  #   model: qwen3.5-plus
-  #   api_key: "<YOUR_DASHSCOPE_API_KEY>"
-  #   max_tokens: 32768
-  #   timeout: 180
-  #   retry_count: 2
-
-  # === 联通云 CUCloud Coding Plan (OpenAI 兼容 API, 整合 GLM-5/M2.5/Qwen3.5) ===
-  # - name: CUCloud-GLM-5
-  #   provider: cucloud
-  #   model: glm-5
+  # === 联通云 CUCloud Coding Plan (OpenAI 兼容) ===
+  # cucloud:
+  #   name: "联通云 CUCloud"
+  #   api_type: openai
+  #   base_url: https://aigw-gzgy2.cucloud.cn:8443/v1
   #   api_key: "<YOUR_CUCLOUD_API_KEY>"
   #   max_tokens: 16384
   #   timeout: 600
-  #   retry_count: 2
+  #   models:
+  #     - name: CUCloud-GLM-5
+  #       model: glm-5
 
-  # - name: CUCloud-Qwen3.5-Plus
-  #   provider: cucloud
-  #   model: qwen3.5-plus
-  #   api_key: "<YOUR_CUCLOUD_API_KEY>"
-  #   max_tokens: 32768
-  #   timeout: 600
-  #   retry_count: 2
+  # === OpenAI (示例) ===
+  # openai:
+  #   name: "OpenAI"
+  #   api_type: openai
+  #   base_url: https://api.openai.com/v1
+  #   api_key: "<YOUR_OPENAI_API_KEY>"
+  #   models:
+  #     - name: GPT-4o
+  #       model: gpt-4o
+  #       max_tokens: 4096
 
-  # === 自定义 OpenAI 兼容服务 ===
-  # - name: My-Local-LLM
-  #   provider: openai_compat
-  #   model: my-model-v1
-  #   base_url: http://localhost:8080/v1
-  #   api_key: "dummy"
-  #   temperature: 0.7
-  #   max_tokens: 2048
+  # === Anthropic Claude (示例) ===
+  # anthropic:
+  #   name: "Anthropic"
+  #   api_type: anthropic
+  #   api_key: "<YOUR_ANTHROPIC_API_KEY>"
+  #   models:
+  #     - name: Claude-Sonnet
+  #       model: claude-sonnet-4-20250514
+  #       max_tokens: 8192
+
+# ====================================
+# 平铺模型列表 (向后兼容, 可与 coding_plans 同时使用)
+# ====================================
+# models:
+#   - name: My-Custom-Model
+#     provider: openai_compat
+#     model: my-model-v1
+#     base_url: http://localhost:8080/v1
+#     api_key: "dummy"
+#     max_tokens: 2048
