@@ -26,6 +26,9 @@ class AnthropicCompatProvider(Provider):
         if base_url:
             client_kwargs["base_url"] = base_url
         self.client = AsyncAnthropic(**client_kwargs)
+        # 防止 ANTHROPIC_AUTH_TOKEN 环境变量干扰第三方兼容端点
+        # SDK 在 __init__ 中从环境变量读取 auth_token, 导致发送无效的 Authorization: Bearer 头
+        self.client.auth_token = None
 
     async def complete(
         self,
