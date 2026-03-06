@@ -322,6 +322,125 @@ python -m llm_bench run -c config.yaml
 
 ---
 
-*测试环境：macOS, Python 3.9.6, 中国大陆网络, 2026-02-15 ~ 02-16*
-*测试方法：4 道 Medium/Hard/Expert 编码任务, 并发 2, anti-cache 开启*
-*所有模型走 Anthropic 兼容协议, 方舟 5 模型同一时间段串行测完, 原生 Kimi 2 模型次日补测并合并*
+## 更新：2026-03-06 — 阿里云百炼 Coding Plan 全系评测 + Qwen3-Coder-Next 登顶
+
+> 一个月后再战，这次把阿里云百炼 Coding Plan 里能选的模型全部拉了出来。还发现了一个 Anthropic SDK 的坑。
+
+### 背景
+
+阿里云百炼推出了 Coding Plan 订阅套餐，用一个 API Key 就能访问千问、Kimi K2.5、GLM-5、MiniMax M2.5 等多家模型。价格统一，按套餐计费。正好借这个机会把全系模型横评一遍。
+
+### 被测模型
+
+百炼 Coding Plan 支持 9 个模型配置（含新增 3 个）：
+
+| 模型 | 底层 | API 协议 | 备注 |
+|------|------|---------|------|
+| **Qwen3-Coder-Next** 🆕 | qwen3-coder-next | OpenAI | 千问最新编码模型 |
+| Qwen3-Coder-Plus | qwen3-coder-plus | OpenAI | 千问编码模型 |
+| Qwen3.5-Plus | qwen3.5-plus | OpenAI | 深度思考 |
+| **Qwen3-Max** 🆕 | qwen3-max-2026-01-23 | OpenAI | 千问旗舰 |
+| **Ali-GLM-5** 🆕 | glm-5 | Anthropic | 智谱 GLM-5 |
+| **Ali-GLM-4.7** 🆕 | glm-4.7 | Anthropic | 智谱 GLM-4.7 |
+| Ali-Kimi-Think-On | kimi-k2.5 | Anthropic | thinking 开启 |
+| Ali-Kimi-Think-Off | kimi-k2.5 | Anthropic | thinking 关闭 |
+| Ali-MiniMax-M2.5 | MiniMax-M2.5 | Anthropic | thinking 默认开启 |
+
+### 结果：Qwen3-Coder-Next 一骑绝尘
+
+| # | 模型 | 综合 | 质量 | 速度 | CPS | 总耗时 |
+|---|------|------|------|------|-----|--------|
+| 1 | **Qwen3-Coder-Next** 🏆 | **89.7** | 85.9 | **100.0** | **946.8** | **43s** |
+| 2 | Qwen3-Coder-Plus | 81.9 | 76.0 | 95.1 | 306.1 | 1.6 min |
+| 3 | Ali-MiniMax-M2.5 | 75.8 | **86.8** | 54.2 | 245.4 | 3.9 min |
+| 4 | Ali-Kimi-Think-On | 75.0 | 83.0 | 60.0 | 237.8 | 11.4 min |
+| 5 | Ali-Kimi-Think-Off | 74.0 | **86.9** | 46.5 | 174.9 | 4.1 min |
+| 6 | Qwen3.5-Plus | 72.2 | 83.2 | 48.9 | 247.3 | 10.2 min |
+| 7 | Ali-GLM-5 | 72.2 | 76.8 | 60.0 | 205.1 | 16.4 min |
+| 8 | Qwen3-Max | 71.5 | 75.1 | 58.2 | 159.5 | 2.5 min |
+| 9 | Ali-GLM-4.7 | 71.4 | 74.6 | 60.0 | 285.3 | 10.6 min |
+
+Qwen3-Coder-Next 直接把榜首从原生 Kimi-Think-Off (86.7) 手里抢走了。综合 89.7，速度满分 100，CPS **946.8 字符/秒**——是上期冠军原生 Kimi (520) 的 **1.8 倍**，是百炼 Kimi (175) 的 **5.4 倍**。
+
+43 秒跑完 4 道题（上期最快的原生 Kimi 要 1.7 分钟），不是一个量级的。
+
+### 全系排行更新 (17 个模型)
+
+| # | 模型 | 综合 | 质量 | 速度 | 等级 | 总耗时 |
+|---|------|------|------|------|------|--------|
+| 1 | **Qwen3-Coder-Next** 🏆 | **89.7** | 85.9 | **100.0** | **A** | **43s** |
+| 2 | Kimi-Native-Think-Off | 86.7 | **87.6** | 94.2 | S | 1.7 min |
+| 3 | Qwen3-Coder-Plus | 81.9 | 76.0 | 95.1 | A | 1.6 min |
+| 4 | Doubao-Default | 81.4 | 81.2 | 82.7 | A | 2.0 min |
+| 5 | Doubao-Think-On | 77.8 | 89.0 | 60.0 | B | 12.8 min |
+| 6 | Ali-MiniMax-M2.5 | 75.8 | 86.8 | 54.2 | B | 3.9 min |
+| 7 | Kimi-Native-Think-On | 75.0 | 82.8 | 60.0 | B | 6.8 min |
+| 8 | Ali-Kimi-Think-On | 75.0 | 83.0 | 60.0 | B | 11.4 min |
+| 9 | MiniMax-M2.5 | 74.7 | 82.1 | 60.0 | B | 4.7 min |
+| 10 | Ali-Kimi-Think-Off | 74.0 | 86.9 | 46.5 | B | 4.1 min |
+| 11 | Kimi-Think-Off (方舟) | 72.9 | 82.4 | 50.7 | B | 5.4 min |
+| 12 | Qwen3.5-Plus | 72.2 | 83.2 | 48.9 | B | 10.2 min |
+| 13 | Ali-GLM-5 | 72.2 | 76.8 | 60.0 | B | 16.4 min |
+| 14 | CUCloud-GLM-5 | 72.0 | 93.1 | 30.2 | B | 29.2 min |
+| 15 | Qwen3-Max | 71.5 | 75.1 | 58.2 | B | 2.5 min |
+| 16 | Ali-GLM-4.7 | 71.4 | 74.6 | 60.0 | B | 10.6 min |
+| 17 | Kimi-Think-On (方舟) | 69.2 | 81.5 | 40.0 | C | 15.2 min |
+
+### 核心发现 5：百炼的第三方模型质量不输原生
+
+百炼版 Kimi-Think-Off 质量 **86.9**，原生版 **87.6**，差距仅 0.7 分。百炼版 MiniMax-M2.5 质量 **86.8**，原生版 82.1——**百炼反而更高**。
+
+但 CPS 差距仍然存在：百炼 Kimi CPS 175 vs 原生 520，百炼 MiniMax CPS 245 vs 原生 290。百炼端对第三方模型仍有一定限速。
+
+> **结论：如果主要看质量，百炼套餐完全够用，而且一个 Key 覆盖四大品牌非常方便。如果你对延迟和速度敏感，Kimi 还是走原生更好。**
+
+### 核心发现 6：千问系列内部分化明显
+
+| 模型 | 综合 | 质量 | CPS | TTFT | 定位 |
+|------|------|------|-----|------|------|
+| Qwen3-Coder-Next | **89.7** | **85.9** | **946.8** | 465ms | 编码专用, 极速 |
+| Qwen3-Coder-Plus | 81.9 | 76.0 | 306.1 | 633ms | 编码专用, 均衡 |
+| Qwen3.5-Plus | 72.2 | 83.2 | 247.3 | 1.4 min | 通用, 深度思考 |
+| Qwen3-Max | 71.5 | 75.1 | 159.5 | 1.1s | 通用旗舰 |
+
+Coder-Next 和 Coder-Plus 是专门优化过的编码模型，速度和综合表现远超通用的 Plus/Max。Qwen3.5-Plus 质量 83.2 比 Coder-Plus 高，但 TTFT 1.4 分钟（有服务端思考），拖慢了综合分。
+
+**Qwen3-Max 反而是最弱的**——可能因为它是通用旗舰而非编码特化，TPS 仅 53，是 Coder-Next 的 1/6。
+
+### 踩坑：Anthropic SDK 的 auth_token 陷阱
+
+跑百炼的 Anthropic 兼容端点时，4 个第三方模型（Kimi、GLM、MiniMax）全部返回 401。同一个 API Key 在 OpenAI 端点上用得好好的。
+
+排查了一个小时，发现是 Anthropic Python SDK v0.84.0 的锅：
+
+1. SDK 在初始化时会自动读取 `ANTHROPIC_AUTH_TOKEN` 环境变量
+2. 在 Amp / Claude Code 环境中，这个变量会被自动设置为一个 UUID
+3. SDK 在请求头里同时发送 `X-Api-Key: sk-sp-xxx`（正确的）和 `Authorization: Bearer <uuid>`（无效的）
+4. 百炼端点优先读取 `Authorization` 头，拿到无效 token 就返回 401
+
+修复就一行：创建客户端后 `client.auth_token = None`。
+
+> 这个坑很隐蔽——只在使用 Amp/Claude Code 等工具时才会触发，直接跑脚本就没问题。如果你也在这类环境中调 Anthropic 兼容的第三方 API，留意这个问题。
+
+### 更新后的推荐
+
+#### 综合最佳：Qwen3-Coder-Next 🏆
+
+**→ 阿里云百炼 Coding Plan + qwen3-coder-next**
+
+综合 89.7 (A 级)，质量 85.9，CPS 946.8 字符/秒。43 秒跑完全部测试。速度满分，质量 A 级。性价比最高的编码模型配置。
+
+#### 质量最佳：百炼 Ali-Kimi-Think-Off / Ali-MiniMax-M2.5
+
+两者质量分均在 86.8~86.9，超过原生 MiniMax (82.1)。如果你用百炼套餐且追求代码质量，Kimi 关 thinking 和 MiniMax 都是好选择。
+
+#### 性价比之选：阿里云百炼 Coding Plan
+
+一个套餐、一个 API Key，涵盖千问 + Kimi + GLM + MiniMax。不用分别注册四家平台。Qwen3-Coder-Next 单独就值回票价。
+
+---
+
+*第一轮测试：macOS, Python 3.9.6, 中国大陆网络, 2026-02-15 ~ 02-16*
+*第一轮方法：4 道 Medium/Hard/Expert 编码任务, 并发 2, anti-cache 开启, 方舟 5 模型 + 原生 Kimi 2 模型*
+*第二轮测试：macOS, Python 3.14.3, 中国大陆网络, 2026-03-06*
+*第二轮方法：同上 4 道题, 阿里云百炼 Coding Plan 全系 9 模型 (千问 4 + 第三方 5)*

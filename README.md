@@ -105,20 +105,26 @@ settings:
   anti_cache: true           # 防缓存 nonce
   enable_judge: false        # LLM Judge 评分
 
-models:
-  - name: My-Model
-    provider: openai_compat    # openai / anthropic / openai_compat / anthropic_compat
-    model: model-id
-    base_url: https://...
-    api_key: "sk-xxx"
-    max_tokens: 8192
-    temperature: 0.0           # per-model 覆盖
-    timeout: 120
-    retry_count: 2
-    # enabled: false           # 临时禁用
+coding_plans:
+  ali:                           # Coding Plan 名称
+    name: "阿里云百炼"
+    api_type: anthropic          # API 协议 (anthropic / openai)
+    base_url: https://coding.dashscope.aliyuncs.com/apps/anthropic
+    api_key: "<YOUR_API_KEY>"
+    max_tokens: 32768
+    timeout: 180
+    models:
+      - name: Qwen3-Coder-Next    # 可覆盖 Plan 级别任何字段
+        model: qwen3-coder-next
+        api_type: openai
+        base_url: https://coding.dashscope.aliyuncs.com/v1
+      - name: Ali-Kimi-Think-On
+        model: kimi-k2.5
+        thinking: enabled          # thinking 控制
+        timeout: 300
 ```
 
-支持的 Provider: `openai`, `anthropic`, `openai_compat`, `anthropic_compat`, `kimi`, `minimax`, `deepseek`, `qwen`, `qwen_coding`, `zhipu`, `doubao`, `baichuan`, `yi`, `grok`, `gemini`, `mistral`, `cucloud`
+支持的 API 协议: `openai` (OpenAI 兼容), `anthropic` (Anthropic 兼容) — 通过 `api_type` 字段配置, 可在 Plan 和 Model 级别分别指定
 
 ### 测试量控制
 
@@ -411,6 +417,92 @@ models:
 2. **CUCloud 使用 OpenAI 兼容 API**: 联通云 CUCloud 的 `/v1/chat/completions` 端点使用 `Authorization: Bearer` 认证, 是 OpenAI 兼容格式 (非 Anthropic)。
 
 3. **CUCloud GLM-5 inline thinking**: 模型的推理过程直接输出在 `content` 字段中 (以 `</think>` 分隔), 不像 Anthropic 的 `thinking` block 分离。导致输出 token 数虚高。
+
+---
+
+## 评测报告: 2026-03-06 — 阿里云百炼 Coding Plan 全系模型 + 新增 Qwen3-Coder-Next
+
+**测试环境**: macOS, Python 3.14.3, 网络环境 (中国大陆)  
+**测试配置**: 4 道 medium/hard/expert 题, 吞吐并发 2, 一致性 1 轮, anti-cache 开启  
+**测试时间**: 2026-03-06 10:20 ~ 11:50 (UTC+8)  
+**本次重点**: 阿里云百炼 Coding Plan 全系 9 个模型评测 (含新增 Qwen3-Coder-Next / Qwen3-Max / GLM-4.7); 修复 Anthropic SDK auth_token 环境变量冲突
+
+### 新增模型
+
+| 模型 | 底层 | API 兼容 | max_tokens | 备注 |
+|------|------|----------|------------|------|
+| Qwen3-Coder-Next | qwen3-coder-next | OpenAI | 32768 | 新模型, 速度极快 (CPS 947) |
+| Qwen3-Max | qwen3-max-2026-01-23 | OpenAI | 32768 | 深度思考模型 |
+| Ali-GLM-5 | glm-5 | Anthropic | 32768 | 智谱 GLM-5, 含深度思考 |
+| Ali-GLM-4.7 | glm-4.7 | Anthropic | 32768 | 智谱 GLM-4.7, 含深度思考 |
+| Ali-Kimi-Think-On | kimi-k2.5 | Anthropic | 32768 | Kimi K2.5, thinking 显式开启 |
+| Ali-Kimi-Think-Off | kimi-k2.5 | Anthropic | 32768 | Kimi K2.5, thinking 显式关闭 |
+| Ali-MiniMax-M2.5 | MiniMax-M2.5 | Anthropic | 32768 | MiniMax M2.5, thinking 默认开启 |
+
+> **注**: Qwen3-Coder-Plus 和 Qwen3.5-Plus 也通过 Coding Plan 重新评测, 更新了结果。
+
+### 全系综合排行 (17 个模型)
+
+| # | 模型 | 综合 | 质量 | 速度 | 吞吐 | 一致性 | 等级 | 总耗时 |
+|---|------|------|------|------|------|--------|------|--------|
+| 1 | **Qwen3-Coder-Next** | **89.7** | 85.9 | **100.0** | **73.7** | 100.0 | **A** | **43s** |
+| 2 | Kimi-Native-Think-Off | 86.7 | 87.6 | 94.2 | 57.9 | 100.0 | S | 1.7 min |
+| 3 | Qwen3-Coder-Plus | 81.9 | 76.0 | 95.1 | 59.8 | 100.0 | A | 1.6 min |
+| 4 | Doubao-Default | 81.4 | 81.2 | 82.7 | 61.3 | 100.0 | A | 2.0 min |
+| 5 | Doubao-Think-On | 77.8 | 89.0 | 60.0 | 51.9 | 100.0 | B | 12.8 min |
+| 6 | **Ali-MiniMax-M2.5** | **75.8** | **86.8** | 54.2 | 54.5 | 100.0 | B | 3.9 min |
+| 7 | Kimi-Native-Think-On | 75.0 | 82.8 | 60.0 | 51.6 | 100.0 | B | 6.8 min |
+| 8 | **Ali-Kimi-Think-On** | **75.0** | 83.0 | 60.0 | 51.0 | 100.0 | B | 11.4 min |
+| 9 | MiniMax-M2.5 | 74.7 | 82.1 | 60.0 | 51.8 | 100.0 | B | 4.7 min |
+| 10 | **Ali-Kimi-Think-Off** | **74.0** | **86.9** | 46.5 | 55.4 | 100.0 | B | 4.1 min |
+| 11 | Kimi-Think-Off (方舟) | 72.9 | 82.4 | 50.7 | 54.2 | 100.0 | B | 5.4 min |
+| 12 | **Qwen3.5-Plus** | **72.2** | 83.2 | 48.9 | 50.3 | 100.0 | B | 10.2 min |
+| 13 | **Ali-GLM-5** | **72.2** | 76.8 | 60.0 | 51.0 | 100.0 | B | 16.4 min |
+| 14 | CUCloud-GLM-5 | 72.0 | 93.1 | 30.2 | 50.0 | 100.0 | B | 29.2 min |
+| 15 | **Qwen3-Max** | **71.5** | 75.1 | 58.2 | 54.6 | 100.0 | B | 2.5 min |
+| 16 | **Ali-GLM-4.7** | **71.4** | 74.6 | 60.0 | 52.3 | 100.0 | B | 10.6 min |
+| 17 | Kimi-Think-On (方舟) | 69.2 | 81.5 | 40.0 | 50.4 | 100.0 | C | 15.2 min |
+
+### 阿里云百炼 Coding Plan 模型对比
+
+| # | 模型 | 综合 | 质量 | 速度 | CPS | TTFT | 总耗时 |
+|---|------|------|------|------|-----|------|--------|
+| 1 | **Qwen3-Coder-Next** | **89.7** | 85.9 | **100.0** | **946.8** | 465ms | **43s** |
+| 2 | Qwen3-Coder-Plus | 81.9 | 76.0 | 95.1 | 306.1 | 633ms | 1.6 min |
+| 3 | Ali-MiniMax-M2.5 | 75.8 | **86.8** | 54.2 | 245.4 | 16.1s | 3.9 min |
+| 4 | Ali-Kimi-Think-On | 75.0 | 83.0 | 60.0 | 237.8 | 1.6 min | 11.4 min |
+| 5 | Ali-Kimi-Think-Off | 74.0 | 86.9 | 46.5 | 174.9 | 1.2s | 4.1 min |
+| 6 | Qwen3.5-Plus | 72.2 | 83.2 | 48.9 | 247.3 | 1.4 min | 10.2 min |
+| 7 | Ali-GLM-5 | 72.2 | 76.8 | 60.0 | 205.1 | 2.6 min | 16.4 min |
+| 8 | Qwen3-Max | 71.5 | 75.1 | 58.2 | 159.5 | 1.1s | 2.5 min |
+| 9 | Ali-GLM-4.7 | 71.4 | 74.6 | 60.0 | 285.3 | 1.6 min | 10.6 min |
+
+### 逐题质量对比 (百炼 Coding Plan)
+
+| 任务 | Qwen3-Coder-Next | Qwen3-Coder-Plus | Qwen3.5-Plus | Qwen3-Max | Ali-GLM-5 | Ali-GLM-4.7 | Ali-Kimi-On | Ali-Kimi-Off | Ali-MiniMax |
+|------|-------------------|-------------------|--------------|-----------|-----------|-------------|-------------|--------------|-------------|
+| M01 并发安全的连接池 | 81.0 | 64.0 | **89.0** | 64.0 | 70.0 | 65.2 | 81.0 | 79.0 | 83.0 |
+| M03 修复 Race Condition | 83.7 | 80.9 | 83.7 | 77.5 | 79.9 | 67.8 | **86.0** | 84.9 | 79.8 |
+| H01 实现跳表 (Skip List) | 89.6 | 77.3 | 81.4 | 77.3 | 76.1 | 77.3 | 77.3 | **90.7** | **90.7** |
+| X02 Promise.allSettled | 89.3 | 81.7 | 78.7 | 81.7 | 81.3 | 88.0 | 87.9 | 92.9 | **93.7** |
+
+### 分析与结论
+
+1. **Qwen3-Coder-Next 登顶全榜**: 综合 89.7 (A 级), 首次超越 Kimi-Native-Think-Off (86.7)。CPS 高达 **946.8 字符/秒**, 是所有模型中最快的, 比原生 Kimi (520) 快 82%。质量 85.9 也很出色。总耗时仅 43 秒, 是最快完成全部测试的模型。
+
+2. **百炼 Coding Plan 性价比极高**: 一个套餐同时涵盖千问、Kimi、GLM、MiniMax 四大品牌模型。Ali-Kimi-Think-Off (86.9) 和 Ali-MiniMax-M2.5 (86.8) 的质量分甚至超过了各自原生 API 的表现。
+
+3. **百炼 vs 原生 Kimi 对比**: Ali-Kimi-Think-Off 质量 86.9 vs 原生 Kimi-Think-Off 87.6, 差距缩小到 0.7 分。但 CPS 差距明显 (174.9 vs 520.2), 百炼的 Kimi 仍有限速。
+
+4. **GLM 系列表现中规中矩**: GLM-5 和 GLM-4.7 综合均在 71-72, 质量 74-77, 低于同为百炼的 Kimi 和 MiniMax。深度思考耗时较长 (TTFT 1.6~2.6 min)。
+
+5. **Qwen3-Max 意外垫底**: 综合 71.5, 在千问系列中最低。TPS 仅 53.2, 远低于 Qwen3-Coder-Next (315.6) 和 Qwen3-Coder-Plus (98.2)。定位为通用模型, 编码能力不如专用 coder 系列。
+
+### 技术发现: Anthropic SDK auth_token 环境变量冲突
+
+Anthropic Python SDK v0.84.0 在初始化时会自动读取 `ANTHROPIC_AUTH_TOKEN` 环境变量, 并在请求头中同时发送 `X-Api-Key` 和 `Authorization: Bearer <auth_token>`。当在 Amp/Claude Code 环境中运行时, 该环境变量会被自动设置, 导致第三方 Anthropic 兼容端点 (如阿里云百炼) 优先读取无效的 `Authorization` 头而返回 401 错误。
+
+修复方案: 在 `AnthropicCompatProvider` 中, 创建客户端后显式设置 `self.client.auth_token = None`, 清除从环境变量继承的无效 token。
 
 ---
 
